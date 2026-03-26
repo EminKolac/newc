@@ -1,0 +1,27 @@
+Measure_Name,DAX_Formula,Description,Category
+Portfolio_NAV,"SUM(dim_Tickers[Your_Value_USD])",Total portfolio value in USD,Portfolio
+Weighted_CAGR,"SUMX(dim_Tickers, dim_Tickers[CAGR_USD] * dim_Tickers[Your_Value_USD]) / SUM(dim_Tickers[Your_Value_USD])",Value-weighted CAGR across portfolio,Portfolio
+Weighted_IRR,"SUMX(dim_Tickers, dim_Tickers[IRR_USD] * dim_Tickers[Your_Value_USD]) / SUM(dim_Tickers[Your_Value_USD])",Value-weighted IRR across portfolio,Portfolio
+Weighted_Return,"SUMX(dim_Tickers, dim_Tickers[Total_Return_USD] * dim_Tickers[Your_Value_USD]) / SUM(dim_Tickers[Your_Value_USD])",Value-weighted total return,Portfolio
+Latest_Revenue_USD,"CALCULATE(SUM(fact_Financials[Revenue_USD]), FILTER(fact_Financials, fact_Financials[Q_Date] = MAX(fact_Financials[Q_Date])))",Sum of latest quarter revenue USD,Financials
+Latest_EBITDA_USD,"CALCULATE(SUM(fact_Financials[EBITDA_USD]), FILTER(fact_Financials, fact_Financials[Q_Date] = MAX(fact_Financials[Q_Date])))",Sum of latest quarter EBITDA USD,Financials
+Latest_FCF_USD,"CALCULATE(SUM(fact_Financials[FCF_USD]), FILTER(fact_Financials, fact_Financials[Q_Date] = MAX(fact_Financials[Q_Date])))",Sum of latest quarter FCF USD,Financials
+Latest_Net_Margin,"CALCULATE(AVERAGE(fact_Financials[Net_Margin]), FILTER(fact_Financials, fact_Financials[Q_Date] = MAX(fact_Financials[Q_Date])))",Avg net margin latest quarter,Financials
+THYAO_Return,"CALCULATE(MAX(dim_Tickers[Total_Return_USD]), dim_Tickers[Ticker] = ""THYAO"", ALL(dim_Tickers))",THYAO total return USD,Ticker_Specific
+HALKB_Return,"CALCULATE(MAX(dim_Tickers[Total_Return_USD]), dim_Tickers[Ticker] = ""HALKB"", ALL(dim_Tickers))",HALKB total return USD,Ticker_Specific
+Latest_Cumul_USD,"CALCULATE(MAX(fact_Returns[Cumul_Nom_USD]), FILTER(fact_Returns, fact_Returns[Q_Date] = MAX(fact_Returns[Q_Date])))",Latest cumulative return USD,Returns
+QoQ_Return,"VAR CurrentQ = SELECTEDVALUE(fact_Returns[Q_Date])
+VAR PrevQ = CALCULATE(MAX(fact_Returns[Q_Date]), FILTER(ALL(fact_Returns), fact_Returns[Q_Date] < CurrentQ))
+VAR CurrentVal = CALCULATE(MAX(fact_Returns[Cumul_Nom_USD]), fact_Returns[Q_Date] = CurrentQ)
+VAR PrevVal = CALCULATE(MAX(fact_Returns[Cumul_Nom_USD]), fact_Returns[Q_Date] = PrevQ)
+RETURN IF(PrevVal <> 0, (CurrentVal - PrevVal) / (1 + PrevVal), BLANK())",Quarter-over-quarter return,Returns
+Real_Return_TRY,"VAR NomReturn = SELECTEDVALUE(fact_Returns[Cumul_Nom_TRY])
+VAR Inflation = SELECTEDVALUE(dim_Inflation[Cumul_CPI])
+RETURN (1 + NomReturn) / (1 + Inflation) - 1",Inflation-adjusted TRY return (requires dim_Inflation table),Returns
+Real_Return_USD,"VAR NomReturn = SELECTEDVALUE(fact_Returns[Cumul_Nom_USD])
+VAR USInflation = SELECTEDVALUE(dim_Inflation[Cumul_US_CPI])
+RETURN (1 + NomReturn) / (1 + USInflation) - 1",Inflation-adjusted USD return (requires dim_Inflation table),Returns
+Interest_Rate_Input,"GENERATESERIES(0, 100, 0.5)",What-if parameter for interest rate input (yearly basis),Parameters
+Discount_Factor,"VAR Rate = [Interest_Rate_Input_Value] / 100
+VAR Quarters = DATEDIFF(MIN(dim_Tickers[Acq_Date]), MAX(fact_Returns[Q_Date]), QUARTER)
+RETURN POWER(1 + Rate/4, -Quarters)",Discount factor using inputable interest rate,Parameters
