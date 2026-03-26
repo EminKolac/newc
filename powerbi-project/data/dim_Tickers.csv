@@ -1,0 +1,12 @@
+Ticker,Company_Name,Sector,Template_Type,Acq_Date,Acq_Type,Ownership_Pct,Acq_Price_TRY,Acq_Price_USD,Current_Price_TRY,Current_Price_USD,USDTRY_Acq,USDTRY_Current,Shares_Held,Your_Value_TRY,Your_Value_USD,Total_Return_TRY,Total_Return_USD,CAGR_USD,IRR_USD
+TURSG,Turkiye Sigorta,Insurance,insurance,2024-06-15,Satin Alma,81.00%,6.85,0.2102,11.81,0.2749,32.59,42.9557,,,72.41%,30.79%,,
+TCELL,Turkcell,Telecom,standard,2024-03-10,Satin Alma,26.20%,74.15,2.3033,93.10,2.1673,32.19,42.9557,,,25.56%,-5.90%,,
+TTKOM,Turk Telekom,Telecom,standard,2024-09-20,Satin Alma,55.00%,52.30,1.5183,57.50,1.3385,34.45,42.9557,,,9.94%,-11.84%,,
+HALKB,Turkiye Halk Bankasi,Banking,bank,2017-02-06,Devir,91.49%,9.81,2.6244,36.78,0.8561,3.7381,42.9557,,,274.82%,-67.39%,,
+TRENJ,TR Dogal Enerji Kaynaklari,Energy,standard,2024-08-19,Devir,62.12%,72.85,2.1314,93.05,2.1662,34.18,42.9557,,,27.71%,1.63%,,
+TRMET,TR Anadolu Metal Madencilik,Mining,standard,2024-08-19,Devir,52.25%,84.50,2.4724,104.40,2.4304,34.18,42.9557,,,23.55%,-1.70%,,
+TRALT,Turk Altin Isletmeleri,Mining,standard,2024-08-19,Devir,48.01%,35.04,1.0253,40.98,0.9539,34.18,42.9557,,,16.95%,-6.96%,,
+THYAO,Turk Hava Yollari,Airlines,standard,2017-02-03,Devir,49.12%,7.56,2.0214,268.50,6.2503,3.7381,42.9557,,,3451.59%,209.18%,,
+VAKBN,VakifBank,Banking,bank,2020-05-29,Satin Alma,73.26%,4.08,0.5957,30.68,0.7141,6.8492,42.9557,,,651.96%,19.87%,,
+KRDMD,Kardemir,Steel,standard,2022-12-05,Satin Alma,4.41%,14.63,0.7829,25.26,0.5879,18.68,42.9557,,,72.66%,-24.91%,,
+KAYSE,Kayseri Seker,Food,standard,2017-02-03,Devir,9.41%,2.13,0.5697,4.34,0.1010,3.7381,42.9557,,,103.76%,-82.27%,,
