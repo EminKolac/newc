@@ -1,0 +1,237 @@
+// ============================================================
+// BIST PORTFOLIO PERFORMANCE TRACKER — V3 DAX MEASURES
+// McKinsey Design · Acquisition-Date Returns · Dual Currency
+// ============================================================
+
+// ─── WHAT-IF PARAMETERS ─────────────────────────────────
+TRY Discount Rate = GENERATESERIES(0, 1, 0.005)
+TRY Discount Rate Value = SELECTEDVALUE('TRY Discount Rate'[TRY Discount Rate], 0.45)
+
+USD Discount Rate = GENERATESERIES(0, 0.5, 0.005)
+USD Discount Rate Value = SELECTEDVALUE('USD Discount Rate'[USD Discount Rate], 0.055)
+
+// ─── NOMINAL/REAL TOGGLE ────────────────────────────────
+// Create disconnected table: NominalReal = DATATABLE("Value", STRING, {{"Nominal"}, {"Real"}})
+
+// ─── QUARTERLY RATE CONVERSION ──────────────────────────
+Quarterly Rate TRY = POWER(1 + [TRY Discount Rate Value], 1/4) - 1
+
+Quarterly Rate USD = POWER(1 + [USD Discount Rate Value], 1/4) - 1
+
+Quarterly Rate =
+    IF(
+        SELECTEDVALUE(fact_Financials[Currency]) = "TRY",
+        [Quarterly Rate TRY],
+        [Quarterly Rate USD]
+    )
+
+// ─── REAL VALUE DEFLATION ───────────────────────────────
+Revenue Real =
+    DIVIDE(
+        SUM(fact_Financials[Revenue]),
+        POWER(1 + [Quarterly Rate], MAX(RELATED(dim_Dates[Quarters_From_Start])))
+    )
+
+Net Income Real =
+    DIVIDE(
+        SUM(fact_Financials[Net_Income]),
+        POWER(1 + [Quarterly Rate], MAX(RELATED(dim_Dates[Quarters_From_Start])))
+    )
+
+EBITDA Real =
+    DIVIDE(
+        SUM(fact_Financials[EBITDA]),
+        POWER(1 + [Quarterly Rate], MAX(RELATED(dim_Dates[Quarters_From_Start])))
+    )
+
+FCF Real =
+    DIVIDE(
+        SUM(fact_Financials[FCF]),
+        POWER(1 + [Quarterly Rate], MAX(RELATED(dim_Dates[Quarters_From_Start])))
+    )
+
+// ─── NOMINAL/REAL DISPLAY SWITCHERS ─────────────────────
+Revenue Display =
+    IF(
+        SELECTEDVALUE(NominalReal[Value]) = "Real",
+        [Revenue Real],
+        SUM(fact_Financials[Revenue])
+    )
+
+Net Income Display =
+    IF(
+        SELECTEDVALUE(NominalReal[Value]) = "Real",
+        [Net Income Real],
+        SUM(fact_Financials[Net_Income])
+    )
+
+EBITDA Display =
+    IF(
+        SELECTEDVALUE(NominalReal[Value]) = "Real",
+        [EBITDA Real],
+        SUM(fact_Financials[EBITDA])
+    )
+
+FCF Display =
+    IF(
+        SELECTEDVALUE(NominalReal[Value]) = "Real",
+        [FCF Real],
+        SUM(fact_Financials[FCF])
+    )
+
+// ─── RETURN CALCULATIONS ────────────────────────────────
+Return Quarterly Nominal =
+    DIVIDE(
+        SUM(fact_Returns[Price_Close])
+        - CALCULATE(SUM(fact_Returns[Price_Close]), PREVIOUSQUARTER(dim_Dates[Quarter_Date])),
+        CALCULATE(SUM(fact_Returns[Price_Close]), PREVIOUSQUARTER(dim_Dates[Quarter_Date]))
+    )
+
+Return Quarterly Real = [Return Quarterly Nominal] - [Quarterly Rate]
+
+Cumulative Return Nominal =
+    PRODUCTX(
+        FILTER(ALL(dim_Dates), dim_Dates[Quarter_Date] <= MAX(dim_Dates[Quarter_Date])),
+        1 + [Return Quarterly Nominal]
+    ) - 1
+
+Cumulative Return Real =
+    PRODUCTX(
+        FILTER(ALL(dim_Dates), dim_Dates[Quarter_Date] <= MAX(dim_Dates[Quarter_Date])),
+        1 + [Return Quarterly Real]
+    ) - 1
+
+Total Return incl Div Nom =
+    [Cumulative Return Nominal]
+    + DIVIDE(SUM(fact_Dividends[DPS]), MIN(fact_Returns[Price_Close]))
+
+Total Return incl Div Real =
+    [Cumulative Return Real]
+    + DIVIDE(
+        SUM(fact_Dividends[DPS]),
+        MIN(fact_Returns[Price_Close]) * POWER(1 + [Quarterly Rate], MAX(RELATED(dim_Dates[Quarters_From_Start])))
+    )
+
+// ─── OWNERSHIP-WEIGHTED PORTFOLIO MEASURES ──────────────
+Your Dividend Income =
+    SUMX(
+        fact_Dividends,
+        fact_Dividends[Total_Cash_Dividend] * RELATED(dim_Tickers[Ownership_Pct])
+    )
+
+Portfolio NAV = SUM(dim_Tickers[Your_Value_USD])
+
+Weighted CAGR =
+    SUMX(dim_Tickers, dim_Tickers[CAGR_USD] * dim_Tickers[Your_Value_USD])
+    / SUM(dim_Tickers[Your_Value_USD])
+
+Weighted IRR =
+    SUMX(dim_Tickers, dim_Tickers[IRR_USD] * dim_Tickers[Your_Value_USD])
+    / SUM(dim_Tickers[Your_Value_USD])
+
+Weighted Return =
+    SUMX(dim_Tickers, dim_Tickers[Total_Return_USD] * dim_Tickers[Your_Value_USD])
+    / SUM(dim_Tickers[Your_Value_USD])
+
+Portfolio Value =
+    SUMX(
+        VALUES(dim_Tickers[Ticker]),
+        [Latest Price Close] * RELATED(dim_Tickers[Shares_Outstanding_M]) * RELATED(dim_Tickers[Ownership_Pct])
+    )
+
+Weighted Portfolio Return =
+    SUMX(VALUES(dim_Tickers[Ticker]), [Return Quarterly Nominal] * RELATED(dim_Tickers[Ownership_Pct]))
+    / SUMX(VALUES(dim_Tickers[Ticker]), RELATED(dim_Tickers[Ownership_Pct]))
+
+// ─── LATEST QUARTER MEASURES ────────────────────────────
+Latest Revenue USD =
+    CALCULATE(
+        SUM(fact_Financials[Revenue_USD]),
+        FILTER(fact_Financials, fact_Financials[Q_Date] = MAX(fact_Financials[Q_Date]))
+    )
+
+Latest EBITDA USD =
+    CALCULATE(
+        SUM(fact_Financials[EBITDA_USD]),
+        FILTER(fact_Financials, fact_Financials[Q_Date] = MAX(fact_Financials[Q_Date]))
+    )
+
+Latest FCF USD =
+    CALCULATE(
+        SUM(fact_Financials[FCF_USD]),
+        FILTER(fact_Financials, fact_Financials[Q_Date] = MAX(fact_Financials[Q_Date]))
+    )
+
+Latest Net Margin =
+    CALCULATE(
+        AVERAGE(fact_Financials[Net_Margin]),
+        FILTER(fact_Financials, fact_Financials[Q_Date] = MAX(fact_Financials[Q_Date]))
+    )
+
+Latest Cumul USD =
+    CALCULATE(
+        MAX(fact_Returns[Cumul_Nom_USD]),
+        FILTER(fact_Returns, fact_Returns[Q_Date] = MAX(fact_Returns[Q_Date]))
+    )
+
+// ─── TICKER-SPECIFIC KPI MEASURES ───────────────────────
+THYAO Return =
+    CALCULATE(
+        MAX(dim_Tickers[Total_Return_USD]),
+        dim_Tickers[Ticker] = "THYAO",
+        ALL(dim_Tickers)
+    )
+
+HALKB Return =
+    CALCULATE(
+        MAX(dim_Tickers[Total_Return_USD]),
+        dim_Tickers[Ticker] = "HALKB",
+        ALL(dim_Tickers)
+    )
+
+// ─── CONDITIONAL FORMATTING MEASURES ────────────────────
+Return Color =
+    IF([Return Quarterly Nominal] >= 0, "#2D8C3C", "#E4002B")
+
+CAGR Color =
+    IF(SELECTEDVALUE(dim_Tickers[CAGR_USD]) >= 0, "#2D8C3C", "#E4002B")
+
+// ─── MARGIN MEASURES ────────────────────────────────────
+EBITDA Margin = DIVIDE(SUM(fact_Financials[EBITDA]), SUM(fact_Financials[Revenue]))
+
+Profit Margin = DIVIDE(SUM(fact_Financials[Net_Income]), SUM(fact_Financials[Revenue]))
+
+FCF Yield = DIVIDE(SUM(fact_Financials[FCF]), SUM(dim_Tickers[Your_Value_USD]))
+
+// ─── DIVIDEND MEASURES ──────────────────────────────────
+Avg Dividend Yield =
+    AVERAGEX(
+        FILTER(VALUES(dim_Tickers[Ticker]), NOT(ISBLANK(CALCULATE(SUM(fact_Dividends[DPS]))))),
+        DIVIDE(CALCULATE(SUM(fact_Dividends[DPS])), CALCULATE(MAX(fact_Returns[Price_Close])))
+    )
+
+Avg Payout Ratio =
+    AVERAGEX(
+        FILTER(VALUES(dim_Tickers[Ticker]), NOT(ISBLANK(CALCULATE(SUM(fact_Dividends[Total_Cash_Dividend]))))),
+        DIVIDE(
+            CALCULATE(SUM(fact_Dividends[Total_Cash_Dividend])),
+            CALCULATE(SUM(fact_Financials[Net_Income]))
+        )
+    )
+
+Tickers Paying Dividends =
+    COUNTROWS(
+        FILTER(
+            VALUES(dim_Tickers[Ticker]),
+            NOT(ISBLANK(CALCULATE(SUM(fact_Dividends[Total_Cash_Dividend]))))
+        )
+    )
+
+// ─── INSURANCE-SPECIFIC (TURSG) ─────────────────────────
+Loss Ratio NL Visible =
+    IF(
+        SELECTEDVALUE(dim_Tickers[Sector]) = "Sigorta"
+        || COUNTROWS(FILTER(VALUES(dim_Tickers[Ticker]), dim_Tickers[Ticker] = "TURSG")) > 0,
+        SUM(fact_Financials[Loss_Ratio_NL]),
+        BLANK()
+    )

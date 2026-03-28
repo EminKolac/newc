@@ -1,0 +1,82 @@
+{
+  "canvas": { "width": 1280, "height": 720 },
+  "theme": "bist_mckinsey_theme.json",
+  "pages": [
+    {
+      "name": "Portfolio Overview",
+      "number": 1,
+      "visuals": [
+        { "type": "textbox", "title": "PORTFOLIO OVERVIEW", "x": 0, "y": 0, "w": 1280, "h": 36, "style": "header_dark" },
+        { "type": "slicer_bar", "x": 0, "y": 36, "w": 1280, "h": 30, "slicers": ["Ticker", "Sector", "Q_Label", "TRY_Rate", "USD_Rate"] },
+        { "type": "card", "measure": "Portfolio NAV", "x": 16, "y": 74, "w": 300, "h": 72, "accent": "#051C2C" },
+        { "type": "card", "measure": "Weighted CAGR", "x": 326, "y": 74, "w": 300, "h": 72, "accent": "#2D8C3C" },
+        { "type": "card", "measure": "Weighted Return", "x": 636, "y": 74, "w": 300, "h": 72, "accent": "#2251FF" },
+        { "type": "card", "measure": "Your Dividend Income", "x": 946, "y": 74, "w": 318, "h": 72, "accent": "#051C2C" },
+        { "type": "bar_chart", "title": "Ownership Stakes", "x": 16, "y": 154, "w": 500, "h": 270, "category": "dim_Tickers[Ticker]", "value": "dim_Tickers[Ownership_Pct]" },
+        { "type": "table", "title": "Portfolio Weight & CAGR", "x": 526, "y": 154, "w": 738, "h": 270 },
+        { "type": "matrix", "title": "Holdings — Returns from Acquisition Date", "x": 16, "y": 432, "w": 1248, "h": 272 }
+      ]
+    },
+    {
+      "name": "Financial Performance",
+      "number": 2,
+      "visuals": [
+        { "type": "textbox", "title": "FINANCIAL PERFORMANCE", "x": 0, "y": 0, "w": 1280, "h": 36, "style": "header_dark" },
+        { "type": "slicer_bar", "x": 0, "y": 36, "w": 1280, "h": 30 },
+        { "type": "card", "measure": "Latest Revenue USD", "x": 16, "y": 74, "w": 300, "h": 72, "accent": "#051C2C" },
+        { "type": "card", "measure": "Latest Net Margin", "x": 326, "y": 74, "w": 300, "h": 72, "accent": "#2251FF" },
+        { "type": "card", "measure": "Latest EBITDA USD", "x": 636, "y": 74, "w": 300, "h": 72, "accent": "#2D8C3C" },
+        { "type": "card", "measure": "Latest FCF USD", "x": 946, "y": 74, "w": 318, "h": 72, "accent": "#009CDC" },
+        { "type": "line_chart", "title": "Revenue Trend", "x": 16, "y": 154, "w": 1248, "h": 200, "xaxis": "Q_Label", "yaxis": "Revenue_USD", "sort": "Sort_Order" },
+        { "type": "clustered_bar", "title": "Op Income vs Net Income", "x": 16, "y": 362, "w": 610, "h": 180 },
+        { "type": "bar_chart", "title": "EBITDA by Quarter", "x": 636, "y": 362, "w": 628, "h": 180 }
+      ]
+    },
+    {
+      "name": "Dividends",
+      "number": 3,
+      "visuals": [
+        { "type": "textbox", "title": "DIVIDENDS", "x": 0, "y": 0, "w": 1280, "h": 36, "style": "header_dark" },
+        { "type": "callout", "text": "Dividend income = Total Cash Dividends x Ownership %", "x": 0, "y": 36, "w": 1280, "h": 24, "style": "amber_banner" },
+        { "type": "card", "measure": "Your Dividend Income", "x": 16, "y": 68, "w": 300, "h": 72 },
+        { "type": "card", "measure": "Avg Dividend Yield", "x": 326, "y": 68, "w": 300, "h": 72 },
+        { "type": "card", "measure": "Avg Payout Ratio", "x": 636, "y": 68, "w": 300, "h": 72 },
+        { "type": "card", "measure": "Tickers Paying Dividends", "x": 946, "y": 68, "w": 318, "h": 72 },
+        { "type": "stacked_bar", "title": "Dividend Income by Quarter", "x": 16, "y": 148, "w": 1248, "h": 200 },
+        { "type": "line_chart", "title": "DPS Trend by Ticker", "x": 16, "y": 356, "w": 610, "h": 180 },
+        { "type": "bar_chart", "title": "Payout Ratio by Ticker", "x": 636, "y": 356, "w": 628, "h": 180 }
+      ]
+    },
+    {
+      "name": "Returns & Performance",
+      "number": 4,
+      "visuals": [
+        { "type": "textbox", "title": "RETURNS FROM ACQUISITION DATE", "x": 0, "y": 0, "w": 1280, "h": 36, "style": "header_dark" },
+        { "type": "callout", "text": "Real value = Nominal / (1 + annual_rate/4)^quarters_elapsed", "x": 0, "y": 36, "w": 1280, "h": 24, "style": "amber_banner" },
+        { "type": "card", "measure": "Weighted CAGR", "x": 16, "y": 68, "w": 300, "h": 72, "accent": "#2D8C3C" },
+        { "type": "card", "measure": "Weighted Return", "x": 326, "y": 68, "w": 300, "h": 72, "accent": "#2251FF" },
+        { "type": "card", "measure": "HALKB Return", "x": 636, "y": 68, "w": 300, "h": 72, "accent": "#E4002B" },
+        { "type": "card", "measure": "THYAO Return", "x": 946, "y": 68, "w": 318, "h": 72, "accent": "#2D8C3C" },
+        { "type": "bar_chart", "title": "Total USD Return from Acquisition", "x": 16, "y": 148, "w": 1248, "h": 240 },
+        { "type": "scorecard", "title": "USD Winners", "x": 16, "y": 396, "w": 610, "h": 120, "style": "green_box" },
+        { "type": "scorecard", "title": "USD Losers", "x": 636, "y": 396, "w": 628, "h": 120, "style": "red_box" }
+      ]
+    },
+    {
+      "name": "Portfolio NAV Waterfall",
+      "number": 5,
+      "visuals": [
+        { "type": "textbox", "title": "PORTFOLIO VALUE BRIDGE", "x": 0, "y": 0, "w": 1280, "h": 36, "style": "header_dark" },
+        { "type": "waterfall", "title": "NAV Build-Up by Ticker", "x": 16, "y": 44, "w": 1248, "h": 400 }
+      ]
+    },
+    {
+      "name": "Ownership-Weighted Revenue",
+      "number": 6,
+      "visuals": [
+        { "type": "textbox", "title": "OWNERSHIP-WEIGHTED REVENUE USD BY YEAR", "x": 0, "y": 0, "w": 1280, "h": 36, "style": "header_dark" },
+        { "type": "stacked_bar", "title": "Annual Revenue x Ownership %", "x": 16, "y": 44, "w": 1248, "h": 400 }
+      ]
+    }
+  ]
+}
