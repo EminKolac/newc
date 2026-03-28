@@ -1,0 +1,14 @@
+{
+  "name": "newc",
+  "version": "1.0.0",
+  "description": "BIST Portfolio Performance Tracker — Financial plugins, MCP servers, Power BI build tools",
+  "main": "index.js",
+  "scripts": {
+    "validate": "python3 powerbi/scripts/validate_data.py",
+    "transform": "python3 powerbi/scripts/bloomberg_transform.py",
+    "bdh": "python3 powerbi/scripts/generate_bdh_formulas.py"
+  },
+  "keywords": ["bist", "portfolio", "powerbi", "finance", "turkey"],
+  "author": "EminKolac",
+  "license": "ISC"
+}

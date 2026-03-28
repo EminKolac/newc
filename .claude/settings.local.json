@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "fintables": {
+      "type": "http",
+      "url": "https://evo.fintables.com/mcp"
+    },
+    "yfinance": {
+      "command": "uvx",
+      "args": ["mcp-yahoo-finance"]
+    },
+    "apify": {
+      "command": "npx",
+      "args": ["-y", "@apify/actors-mcp-server"],
+      "env": {
+        "APIFY_TOKEN": "${APIFY_TOKEN}",
+        "ACTORS": "apify/twitter-scraper,apify/google-news-scraper,apify/google-trends-scraper,apify/reddit-scraper,apify/web-scraper"
+      }
+    }
+  }
+}
