@@ -1,0 +1,21 @@
+# Environment
+.env
+*.env.*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Excel output
+*.xlsx
+!scripts/BIST_PORTFOLIO_V3_FINAL.xlsx
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data cache
+data_cache/
