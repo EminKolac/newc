@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "tradingview": {
+      "command": "node",
+      "args": ["/home/user/tradingview-mcp/src/index.js"],
+      "env": {
+        "TV_DEBUG_PORT": "9222"
+      }
+    }
+  }
+}
