@@ -46,8 +46,24 @@ class TeamsVideoManager:
     def find_all_sharepoint_sites(self):
         """Find all SharePoint sites (Teams channels map to SharePoint sites)."""
         print("[*] Searching for all SharePoint sites...")
-        sites = self.connector._get(f"{GRAPH_BASE}/sites?search=*")
-        return sites.get("value", [])
+        try:
+            sites = self.connector._get(f"{GRAPH_BASE}/sites?search=*")
+            found = sites.get("value", [])
+            print(f"  Found {len(found)} sites")
+            for s in found:
+                print(f"  - {s.get('displayName', 'N/A')} ({s.get('webUrl', '')})")
+            return found
+        except Exception as e:
+            print(f"  Error searching sites: {e}")
+            # Fallback: try the root site directly
+            print("[*] Trying root site directly...")
+            try:
+                root = self.connector._get(f"{GRAPH_BASE}/sites/{self.connector.sharepoint_site_url}")
+                print(f"  Found root site: {root.get('displayName', 'N/A')}")
+                return [root]
+            except Exception as e2:
+                print(f"  Error: {e2}")
+                return []
 
     def find_teams_sites(self):
         """Find SharePoint sites that belong to Teams (groups)."""
@@ -276,11 +292,9 @@ def main():
         print("\n[Done] Undo complete.")
         return
 
-    # Step 1: Find all Teams-linked SharePoint sites
-    sites = manager.find_teams_sites()
-    if not sites:
-        print("[*] No Teams sites found. Trying all SharePoint sites...")
-        sites = manager.find_all_sharepoint_sites()
+    # Step 1: Find all SharePoint sites (skip Groups API which needs extra permissions)
+    print("[*] Searching all SharePoint sites directly...")
+    sites = manager.find_all_sharepoint_sites()
 
     if not sites:
         print("[ERROR] No SharePoint sites found. Check API permissions.")
