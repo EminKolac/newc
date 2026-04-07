@@ -303,103 +303,118 @@ def main():
         print("[ERROR] No SharePoint sites found. Check API permissions.")
         sys.exit(1)
 
-    # Step 2: For each site, find drives and scan for videos
-    all_videos = []
-    for site in sites:
-        site_name = site.get("_teamName", site.get("displayName", "Unknown"))
-        site_url = site.get("webUrl", "")
-        site_id = site.get("id", "")
+    # Filter sites if needed
+    if args.site_filter:
+        sites = [s for s in sites if args.site_filter.lower() in s.get("displayName", "").lower()]
 
-        if args.site_filter and args.site_filter.lower() not in site_name.lower():
+    # Step 2: Process in batches of 5 sites — scan + block immediately per batch
+    # This keeps the token fresh (no long gap between auth and blocking)
+    BATCH_SIZE = 5
+    total_videos = 0
+    total_success = 0
+    total_fail = 0
+
+    for batch_start in range(0, len(sites), BATCH_SIZE):
+        batch = sites[batch_start:batch_start + BATCH_SIZE]
+        batch_num = batch_start // BATCH_SIZE + 1
+        total_batches = (len(sites) + BATCH_SIZE - 1) // BATCH_SIZE
+
+        print(f"\n{'#'*60}")
+        print(f"  BATCH {batch_num}/{total_batches} — Sites {batch_start+1}-{batch_start+len(batch)} of {len(sites)}")
+        print(f"{'#'*60}")
+
+        # Fresh token for each batch
+        connector.authenticate_app()
+
+        # Scan this batch of sites
+        batch_videos = []
+        for site in batch:
+            site_name = site.get("_teamName", site.get("displayName", "Unknown"))
+            site_url = site.get("webUrl", "")
+            site_id = site.get("id", "")
+
+            print(f"\n=== Site: {site_name} ===")
+
+            site_audit = {
+                "name": site_name,
+                "url": site_url,
+                "id": site_id,
+                "status": "ok",
+                "drives": [],
+                "videos_found": 0,
+                "videos_blocked": 0,
+                "videos_failed": 0,
+                "error": None,
+            }
+
+            try:
+                drives = connector.list_drives(site_id)
+                manager.audit["total_sites_scanned"] += 1
+                for drive in drives.get("value", []):
+                    print(f"  Drive: {drive['name']}")
+                    manager.audit["total_drives_scanned"] += 1
+                    videos = manager.find_videos_in_drive(drive["id"], drive["name"])
+                    for v in videos:
+                        v["site_name"] = site_name
+                        v["site_url"] = site_url
+                    batch_videos.extend(videos)
+                    site_audit["drives"].append({
+                        "name": drive["name"],
+                        "id": drive["id"],
+                        "videos_found": len(videos),
+                    })
+                    site_audit["videos_found"] += len(videos)
+            except Exception as e:
+                print(f"  Error listing drives: {e}")
+                site_audit["status"] = "error"
+                site_audit["error"] = str(e)
+                manager.audit["total_sites_errors"] += 1
+
+            manager.audit["sites"].append(site_audit)
+
+        total_videos += len(batch_videos)
+
+        if not batch_videos:
+            print(f"\n  No videos in this batch.")
             continue
 
-        print(f"\n=== Site: {site_name} ===")
+        # Block videos for this batch immediately (token is still fresh)
+        action = "Preview" if args.dry_run else "Blocking"
+        print(f"\n  [{action}] {len(batch_videos)} videos in batch {batch_num}...\n")
 
-        site_audit = {
-            "name": site_name,
-            "url": site_url,
-            "id": site_id,
-            "status": "ok",
-            "drives": [],
-            "videos_found": 0,
-            "videos_blocked": 0,
-            "videos_failed": 0,
-            "error": None,
-        }
+        batch_success = 0
+        for video in batch_videos:
+            result = manager.block_download(
+                video["drive_id"], video["item_id"], video["name"], args.dry_run
+            )
+            if result:
+                batch_success += 1
 
-        try:
-            drives = connector.list_drives(site_id)
-            manager.audit["total_sites_scanned"] += 1
-            for drive in drives.get("value", []):
-                print(f"  Drive: {drive['name']}")
-                manager.audit["total_drives_scanned"] += 1
-                videos = manager.find_videos_in_drive(drive["id"], drive["name"])
-                for v in videos:
-                    v["site_name"] = site_name
-                    v["site_url"] = site_url
-                all_videos.extend(videos)
-                site_audit["drives"].append({
-                    "name": drive["name"],
-                    "id": drive["id"],
-                    "videos_found": len(videos),
-                })
-                site_audit["videos_found"] += len(videos)
-        except Exception as e:
-            print(f"  Error listing drives: {e}")
-            site_audit["status"] = "error"
-            site_audit["error"] = str(e)
-            manager.audit["total_sites_errors"] += 1
+        total_success += batch_success
+        total_fail += len(batch_videos) - batch_success
+        print(f"\n  Batch {batch_num} done: {batch_success}/{len(batch_videos)} blocked")
 
-        manager.audit["sites"].append(site_audit)
+        # Update site-level audit for this batch
+        for change in manager.changes[-len(batch_videos):]:
+            if change["action"] == "block_download":
+                for sa in manager.audit["sites"]:
+                    for da in sa.get("drives", []):
+                        if da["id"] == change["drive_id"]:
+                            if change.get("success"):
+                                sa["videos_blocked"] = sa.get("videos_blocked", 0) + 1
+                            else:
+                                sa["videos_failed"] = sa.get("videos_failed", 0) + 1
+                            break
 
-    manager.audit["total_videos_found"] = len(all_videos)
+        # Save change log after each batch (so progress is never lost)
+        manager.save_change_log()
+
+    manager.audit["total_videos_found"] = total_videos
 
     print(f"\n{'='*60}")
-    print(f"Found {len(all_videos)} videos from 2025+ across {manager.audit['total_sites_scanned']} sites")
+    print(f"[Done] {total_success}/{total_videos} videos blocked across all sites")
+    print(f"       {total_fail} failed")
     print(f"{'='*60}")
-
-    if not all_videos:
-        print("[Done] No videos to process.")
-        manager.save_audit_report()
-        return
-
-    # Step 3: Refresh token before blocking (scanning may have consumed most of token lifetime)
-    if not args.dry_run:
-        print("\n[*] Refreshing token before blocking phase...")
-        connector.refresh_token_if_needed(force=True)
-
-    action = "Preview" if args.dry_run else "Blocking"
-    print(f"\n[*] {action} downloads for {len(all_videos)} videos...\n")
-
-    success_count = 0
-    for i, video in enumerate(all_videos, 1):
-        # Refresh token every 200 videos to prevent expiry
-        if i % 200 == 0:
-            print(f"\n  --- Progress: {i}/{len(all_videos)} | Refreshing token... ---")
-            connector.refresh_token_if_needed(force=True)
-            print(f"  --- Token refreshed, continuing ---\n")
-        elif i % 100 == 0:
-            print(f"\n  --- Progress: {i}/{len(all_videos)} ---\n")
-        result = manager.block_download(
-            video["drive_id"], video["item_id"], video["name"], args.dry_run
-        )
-        if result:
-            success_count += 1
-
-    print(f"\n[Done] {success_count}/{len(all_videos)} videos processed successfully.")
-
-    # Update site-level audit with block results
-    for change in manager.changes:
-        if change["action"] == "block_download":
-            for sa in manager.audit["sites"]:
-                # Match by drive_id
-                for da in sa.get("drives", []):
-                    if da["id"] == change["drive_id"]:
-                        if change.get("success"):
-                            sa["videos_blocked"] = sa.get("videos_blocked", 0) + 1
-                        else:
-                            sa["videos_failed"] = sa.get("videos_failed", 0) + 1
-                        break
 
     # Save logs
     manager.save_change_log()
