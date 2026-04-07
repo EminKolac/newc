@@ -117,6 +117,7 @@ class TeamsVideoManager:
         """
         Block download for a specific file by creating a view-only sharing link
         with preventsDownload=True via the Graph API createLink endpoint.
+        Stores the permission ID so the change can be reversed later.
         """
         if dry_run:
             print(f"  [DRY-RUN] Would block download: {filename}")
@@ -136,8 +137,11 @@ class TeamsVideoManager:
                 }
             )
             success = resp.status_code < 300
+            permission_id = None
             if success:
-                print(f"  [OK] Blocked download: {filename}")
+                data = resp.json()
+                permission_id = data.get("id")
+                print(f"  [OK] Blocked download: {filename} (perm={permission_id})")
             else:
                 print(f"  [FAIL] {resp.status_code} for {filename}: {resp.text[:200]}")
 
@@ -146,6 +150,7 @@ class TeamsVideoManager:
                 "drive_id": drive_id,
                 "item_id": item_id,
                 "filename": filename,
+                "permission_id": permission_id,
                 "timestamp": datetime.utcnow().isoformat(),
                 "success": success,
             })
@@ -158,41 +163,50 @@ class TeamsVideoManager:
                 "drive_id": drive_id,
                 "item_id": item_id,
                 "filename": filename,
+                "permission_id": None,
                 "timestamp": datetime.utcnow().isoformat(),
                 "success": False,
                 "error": str(e),
             })
             return False
 
-    def unblock_download(self, drive_id, item_id, filename, dry_run=False):
-        """Re-enable download for a file (undo/reverse operation)."""
+    def unblock_download(self, drive_id, item_id, filename, permission_id=None, dry_run=False):
+        """Re-enable download for a file by deleting the block-download permission.
+        If permission_id is provided (from change log), deletes it directly.
+        Otherwise falls back to scanning all permissions for preventsDownload links.
+        """
         if dry_run:
             print(f"  [DRY-RUN] Would unblock download: {filename}")
             return True
 
-        try:
-            url = f"{GRAPH_BASE}/drives/{drive_id}/items/{item_id}/permissions"
-            perms = self.connector._get(url)
+        import requests as req
 
-            for perm in perms.get("value", []):
-                if perm.get("link") and perm["link"].get("preventsDownload"):
-                    perm_id = perm["id"]
-                    import requests
-                    resp = requests.patch(
-                        f"{GRAPH_BASE}/drives/{drive_id}/items/{item_id}/permissions/{perm_id}",
-                        headers=self.connector._headers(),
-                        json={
-                            "link": {
-                                "type": perm["link"].get("type", "view"),
-                                "scope": perm["link"].get("scope", "organization"),
-                                "preventsDownload": False,
-                            }
-                        }
-                    )
-                    if resp.status_code < 300:
-                        print(f"  [OK] Unblocked download: {filename}")
-                    else:
-                        print(f"  [WARN] {resp.status_code}: {resp.text[:200]}")
+        try:
+            perm_ids_to_delete = []
+
+            if permission_id:
+                perm_ids_to_delete.append(permission_id)
+            else:
+                # Fallback: scan permissions to find preventsDownload links
+                url = f"{GRAPH_BASE}/drives/{drive_id}/items/{item_id}/permissions"
+                perms = self.connector._get(url)
+                for perm in perms.get("value", []):
+                    if perm.get("link") and perm["link"].get("preventsDownload"):
+                        perm_ids_to_delete.append(perm["id"])
+
+            if not perm_ids_to_delete:
+                print(f"  [SKIP] No block-download permission found for: {filename}")
+                return True
+
+            success = False
+            for pid in perm_ids_to_delete:
+                del_url = f"{GRAPH_BASE}/drives/{drive_id}/items/{item_id}/permissions/{pid}"
+                resp = req.delete(del_url, headers=self.connector._headers())
+                if resp.status_code < 300:
+                    print(f"  [OK] Unblocked download: {filename} (deleted perm={pid})")
+                    success = True
+                else:
+                    print(f"  [FAIL] {resp.status_code} deleting perm {pid} for {filename}: {resp.text[:200]}")
 
             self.changes.append({
                 "action": "unblock_download",
@@ -200,9 +214,9 @@ class TeamsVideoManager:
                 "item_id": item_id,
                 "filename": filename,
                 "timestamp": datetime.utcnow().isoformat(),
-                "success": True,
+                "success": success,
             })
-            return True
+            return success
         except Exception as e:
             print(f"  [FAIL] Could not unblock {filename}: {e}")
             return False
@@ -240,7 +254,10 @@ def main():
         blocked_items = [c for c in previous_changes if c["action"] == "block_download" and c.get("success")]
         print(f"[*] Undoing {len(blocked_items)} blocked videos...")
         for item in blocked_items:
-            manager.unblock_download(item["drive_id"], item["item_id"], item["filename"], args.dry_run)
+            manager.unblock_download(
+                item["drive_id"], item["item_id"], item["filename"],
+                permission_id=item.get("permission_id"), dry_run=args.dry_run
+            )
         if args.log:
             manager.save_change_log()
         print("\n[Done] Undo complete.")
