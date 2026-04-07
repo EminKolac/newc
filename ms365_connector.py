@@ -38,6 +38,7 @@ class MS365Connector:
         self.sharepoint_site_url = os.getenv("SHAREPOINT_SITE_URL", "usulacademy.sharepoint.com")
         self.sharepoint_site_name = os.getenv("SHAREPOINT_SITE_NAME", "")
         self.access_token = None
+        self._token_count = 0
 
         if not all([self.tenant_id, self.client_id, self.client_secret]):
             print("ERROR: Missing Azure AD credentials. Set AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET in .env")
@@ -63,6 +64,15 @@ class MS365Connector:
         else:
             print(f"[FAIL] Auth error: {result.get('error_description', result)}")
             return False
+
+    def refresh_token_if_needed(self, force=False):
+        """Re-authenticate to get a fresh token. Call periodically to avoid expiry.
+        Auto-refreshes every 500 API calls or when forced.
+        """
+        self._token_count += 1
+        if force or self._token_count >= 500:
+            self._token_count = 0
+            self.authenticate_app()
 
     def authenticate_device_code(self):
         """Authenticate using device code flow (interactive, delegated permissions)."""

@@ -363,13 +363,22 @@ def main():
         manager.save_audit_report()
         return
 
-    # Step 3: Block downloads
+    # Step 3: Refresh token before blocking (scanning may have consumed most of token lifetime)
+    if not args.dry_run:
+        print("\n[*] Refreshing token before blocking phase...")
+        connector.refresh_token_if_needed(force=True)
+
     action = "Preview" if args.dry_run else "Blocking"
     print(f"\n[*] {action} downloads for {len(all_videos)} videos...\n")
 
     success_count = 0
     for i, video in enumerate(all_videos, 1):
-        if i % 100 == 0:
+        # Refresh token every 200 videos to prevent expiry
+        if i % 200 == 0:
+            print(f"\n  --- Progress: {i}/{len(all_videos)} | Refreshing token... ---")
+            connector.refresh_token_if_needed(force=True)
+            print(f"  --- Token refreshed, continuing ---\n")
+        elif i % 100 == 0:
             print(f"\n  --- Progress: {i}/{len(all_videos)} ---\n")
         result = manager.block_download(
             video["drive_id"], video["item_id"], video["name"], args.dry_run
