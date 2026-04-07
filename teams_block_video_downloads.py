@@ -115,77 +115,31 @@ class TeamsVideoManager:
 
     def block_download(self, drive_id, item_id, filename, dry_run=False):
         """
-        Block download for a specific file using SharePoint's SharingControls.
-        Uses the Graph API to update sharing settings.
+        Block download for a specific file by creating a view-only sharing link
+        with preventsDownload=True via the Graph API createLink endpoint.
         """
         if dry_run:
             print(f"  [DRY-RUN] Would block download: {filename}")
             return True
 
+        import requests as req
+        url = f"{GRAPH_BASE}/drives/{drive_id}/items/{item_id}/createLink"
+
         try:
-            # Method 1: Update sharing link to BlockDownload via sensitivity
-            # For SharePoint, we use the sites API to set BlockDownloadPolicy
-            url = f"{GRAPH_BASE}/drives/{drive_id}/items/{item_id}"
-
-            # Get current permissions
-            perms_url = f"{url}/permissions"
-            perms = self.connector._get(perms_url)
-
-            # Update each sharing link to block download
-            blocked = False
-            for perm in perms.get("value", []):
-                if perm.get("link"):
-                    perm_id = perm["id"]
-                    try:
-                        patch_url = f"{url}/permissions/{perm_id}"
-                        import requests
-                        resp = requests.patch(
-                            patch_url,
-                            headers=self.connector._headers(),
-                            json={
-                                "link": {
-                                    "type": perm["link"].get("type", "view"),
-                                    "scope": perm["link"].get("scope", "organization"),
-                                    "preventsDownload": True,
-                                }
-                            }
-                        )
-                        if resp.status_code < 300:
-                            blocked = True
-                    except Exception:
-                        pass
-
-            # Method 2: Use the SharePoint REST-style block via Graph
-            # Set the item's additional data to prevent download
-            import requests
-            resp = requests.patch(
+            resp = req.post(
                 url,
                 headers=self.connector._headers(),
                 json={
-                    "@microsoft.graph.downloadUrl": None,
+                    "type": "view",
+                    "scope": "organization",
+                    "preventsDownload": True,
                 }
             )
-
-            # Method 3: Create a new view-only sharing link (most reliable)
-            try:
-                create_link_url = f"{url}/createLink"
-                import requests
-                resp = requests.post(
-                    create_link_url,
-                    headers=self.connector._headers(),
-                    json={
-                        "type": "view",
-                        "scope": "organization",
-                        "preventsDownload": True,
-                    }
-                )
-                if resp.status_code < 300:
-                    blocked = True
-                    print(f"  [OK] Blocked download: {filename}")
-                else:
-                    print(f"  [WARN] Response {resp.status_code} for {filename}: {resp.text[:200]}")
-            except Exception as e:
-                print(f"  [WARN] createLink failed for {filename}: {e}")
+            success = resp.status_code < 300
+            if success:
+                print(f"  [OK] Blocked download: {filename}")
+            else:
+                print(f"  [FAIL] {resp.status_code} for {filename}: {resp.text[:200]}")
 
             self.changes.append({
                 "action": "block_download",
@@ -193,9 +147,9 @@ class TeamsVideoManager:
                 "item_id": item_id,
                 "filename": filename,
                 "timestamp": datetime.utcnow().isoformat(),
-                "success": blocked,
+                "success": success,
             })
-            return blocked
+            return success
 
         except Exception as e:
             print(f"  [FAIL] Could not block download for {filename}: {e}")

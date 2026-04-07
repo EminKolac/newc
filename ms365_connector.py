@@ -44,12 +44,16 @@ class MS365Connector:
             sys.exit(1)
 
     def authenticate_app(self):
-        """Authenticate using client credentials (app-only, no user interaction)."""
+        """Authenticate using client credentials (app-only, no user interaction).
+        Forces a fresh token (no cache) to pick up any newly granted permissions.
+        """
         authority = f"https://login.microsoftonline.com/{self.tenant_id}"
+        # Use token_cache=None-equivalent: create a fresh app each time, no persistent cache
         app = msal.ConfidentialClientApplication(
             self.client_id,
             authority=authority,
             client_credential=self.client_secret,
+            token_cache=msal.SerializableTokenCache(),  # empty cache = force fresh token
         )
         result = app.acquire_token_for_client(scopes=SCOPES_APP)
         if "access_token" in result:
