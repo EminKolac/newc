@@ -1,16 +1,14 @@
 """
-Restore Permission Inheritance on video files.
+Restore Permission Inheritance — Graph API version.
+Uses Microsoft Graph invite endpoint to grant the site's Members group
+Read access to video files, fixing "None" permissions for students.
 
-The lockdown broke inheritance on files — they have "unique permissions"
-with only sharing links, but no user/group grants. This script calls
-SharePoint REST API to reset inheritance, so files inherit from the
-parent library/site — giving Members (students) their access back.
+No SharePoint REST API needed — works with existing Graph permissions.
 
 Usage:
   python restore_inheritance.py --site "2025 Kalam III" --dry-run
   python restore_inheritance.py --site "2025 Kalam III"
   python restore_inheritance.py --all-sites --dry-run
-  python restore_inheritance.py --all-sites
 """
 
 import os
@@ -29,29 +27,8 @@ def is_video(filename):
     return os.path.splitext(filename.lower())[1] in VIDEO_EXTENSIONS
 
 
-def get_sharepoint_token(connector):
-    """Get a SharePoint-scoped access token (separate from Graph token)."""
-    import msal
-    authority = f"https://login.microsoftonline.com/{connector.tenant_id}"
-    app = msal.ConfidentialClientApplication(
-        connector.client_id,
-        authority=authority,
-        client_credential=connector.client_secret,
-        token_cache=msal.SerializableTokenCache(),
-    )
-    result = app.acquire_token_for_client(
-        scopes=[f"https://{connector.sharepoint_site_url}/.default"]
-    )
-    if "access_token" in result:
-        print("[OK] Got SharePoint token")
-        return result["access_token"]
-    else:
-        print(f"[FAIL] SharePoint token error: {result.get('error_description', result)}")
-        return None
-
-
 def main():
-    parser = argparse.ArgumentParser(description="Restore permission inheritance on video files")
+    parser = argparse.ArgumentParser(description="Restore student view access on video files")
     parser.add_argument("--site", type=str, help="Site name to restore")
     parser.add_argument("--all-sites", action="store_true")
     parser.add_argument("--all-files", action="store_true", help="Restore ALL files, not just videos")
@@ -67,20 +44,8 @@ def main():
     connector = MS365Connector()
     connector.authenticate_app()
 
-    # Get SharePoint-scoped token for REST API calls
-    sp_token = get_sharepoint_token(connector)
-    if not sp_token:
-        print("[ERROR] Cannot get SharePoint token. Check app permissions.")
-        print("  Your app needs Sites.FullControl.All in Azure AD.")
-        sys.exit(1)
-
-    sp_headers = {
-        "Authorization": f"Bearer {sp_token}",
-        "Accept": "application/json;odata=verbose",
-    }
-
     # ── Find target sites ──
-    print(f"[*] Searching for sites...")
+    print("[*] Searching for sites...")
     result = connector._get(f"{GRAPH_BASE}/sites?search=*&$top=999")
     all_sites = result.get("value", [])
     while "@odata.nextLink" in result:
@@ -100,25 +65,42 @@ def main():
 
     log = []
     stats = {
-        "sites": 0, "files_found": 0, "inheritance_restored": 0,
-        "already_inheriting": 0, "errors": 0,
+        "sites": 0, "files_found": 0, "access_granted": 0,
+        "already_has_access": 0, "errors": 0, "group_not_found": 0,
     }
 
     for si, site in enumerate(sites, 1):
         site_name = site.get("displayName", "Unknown")
         site_id = site["id"]
-        site_url = site.get("webUrl", "")
 
-        # Refresh tokens
         connector.authenticate_app()
-        sp_token = get_sharepoint_token(connector)
-        sp_headers["Authorization"] = f"Bearer {sp_token}"
-
-        print(f"\n[{si}/{len(sites)}] {site_name}")
-        print(f"  URL: {site_url}")
         stats["sites"] += 1
 
-        # Get drives
+        print(f"\n{'='*60}")
+        print(f"[{si}/{len(sites)}] {site_name}")
+        print(f"{'='*60}")
+
+        # ── Step 1: Find the M365 group (Members) for this site ──
+        members_group = find_members_group(connector, site_name, req)
+
+        if not members_group:
+            print(f"  [WARN] No Members group found for {site_name}")
+            print(f"  Trying to find site group via site permissions...")
+            members_group = find_group_from_site_permissions(connector, site_id, req)
+
+        if not members_group:
+            print(f"  [SKIP] Cannot find Members group — skipping site")
+            stats["group_not_found"] += 1
+            continue
+
+        group_id = members_group["id"]
+        group_name = members_group.get("displayName", "Unknown")
+        group_email = members_group.get("mail", "")
+        print(f"  [OK] Members group: {group_name} (id={group_id[:20]}...)")
+        if group_email:
+            print(f"       Email: {group_email}")
+
+        # ── Step 2: Get drives and scan files ──
         try:
             drives = connector._get(f"{GRAPH_BASE}/sites/{site_id}/drives").get("value", [])
         except Exception as e:
@@ -130,52 +112,44 @@ def main():
             drive_id = drive["id"]
             drive_name = drive.get("name", "")
 
-            # Scan for files (with SharePoint IDs)
             files = scan_drive(connector, drive_id, args.all_files)
             stats["files_found"] += len(files)
 
             if files:
-                print(f"  Drive '{drive_name}': {len(files)} files to restore")
+                print(f"  Drive '{drive_name}': {len(files)} files")
 
+            # ── Step 3: Grant Members group Read access to each file ──
             for fi, f in enumerate(files):
-                # Get the SharePoint list item info
                 try:
-                    item_details = connector._get(
-                        f"{GRAPH_BASE}/drives/{drive_id}/items/{f['item_id']}?$select=id,name,sharepointIds,parentReference"
-                    )
-                    sp_ids = item_details.get("sharepointIds", {})
-                    list_id = sp_ids.get("listId", "")
-                    list_item_id = sp_ids.get("listItemId", "")
-                    site_url_from_item = sp_ids.get("siteUrl", site_url)
-
-                    if not list_id or not list_item_id:
-                        print(f"    [SKIP] No SharePoint IDs for: {f['name']}")
-                        continue
-
-                    # Call SharePoint REST API to reset role inheritance
-                    reset_url = f"{site_url_from_item}/_api/web/lists(guid'{list_id}')/items({list_item_id})/resetroleinheritance"
-
                     if args.dry_run:
-                        print(f"    [DRY-RUN] Would restore inheritance: {f['name']}")
-                        stats["inheritance_restored"] += 1
+                        print(f"    [DRY-RUN] Would grant '{group_name}' Read on: {f['name']}")
+                        stats["access_granted"] += 1
                     else:
-                        resp = req.post(reset_url, headers=sp_headers)
+                        url = f"{GRAPH_BASE}/drives/{drive_id}/items/{f['item_id']}/invite"
+                        payload = {
+                            "recipients": [{"objectId": group_id}],
+                            "roles": ["read"],
+                            "requireSignIn": True,
+                            "sendInvitation": False,
+                        }
+                        resp = req.post(url, headers=connector._headers(), json=payload, timeout=30)
+
                         if resp.status_code < 300:
-                            stats["inheritance_restored"] += 1
+                            stats["access_granted"] += 1
                             log.append({
-                                "action": "inheritance_restored",
+                                "action": "granted_read",
                                 "site": site_name,
                                 "filename": f["name"],
                                 "drive_id": drive_id,
                                 "item_id": f["item_id"],
-                                "list_id": list_id,
-                                "list_item_id": list_item_id,
+                                "group_id": group_id,
+                                "group_name": group_name,
                                 "timestamp": datetime.now(timezone.utc).isoformat(),
                             })
-                        elif resp.status_code == 200 or "already inherits" in resp.text.lower():
-                            stats["already_inheriting"] += 1
+                        elif resp.status_code == 409 or "already" in resp.text.lower():
+                            stats["already_has_access"] += 1
                         else:
-                            print(f"    [ERROR] {resp.status_code} on {f['name']}: {resp.text[:150]}")
+                            print(f"    [ERROR] {resp.status_code} on {f['name']}: {resp.text[:200]}")
                             stats["errors"] += 1
 
                 except Exception as e:
@@ -185,8 +159,6 @@ def main():
                 # Token refresh every 50 files
                 if (fi + 1) % 50 == 0:
                     connector.authenticate_app()
-                    sp_token = get_sharepoint_token(connector)
-                    sp_headers["Authorization"] = f"Bearer {sp_token}"
                     print(f"    --- {fi+1}/{len(files)} processed ---")
 
     # Save log
@@ -198,17 +170,95 @@ def main():
     mode = " (DRY RUN)" if args.dry_run else ""
     print(f"""
 {'='*60}
-  RESTORE INHERITANCE{mode}
+  RESTORE ACCESS{mode}
 {'='*60}
   Sites processed:          {stats['sites']}
   Files found:              {stats['files_found']}
-  Inheritance restored:     {stats['inheritance_restored']}
-  Already inheriting:       {stats['already_inheriting']}
+  Access granted:           {stats['access_granted']}
+  Already had access:       {stats['already_has_access']}
+  Groups not found:         {stats['group_not_found']}
   Errors:                   {stats['errors']}
 {'='*60}
-  Files now inherit permissions from their parent library/site.
-  Students who are site Members can now view these files.
+  The Members group now has Read access on these files.
+  Students should see files when they check permissions.
 {'='*60}""")
+
+
+def find_members_group(connector, site_name, req):
+    """Find the M365 group for a Teams site by searching groups."""
+    # Try exact name search
+    headers = connector._headers()
+    headers["ConsistencyLevel"] = "eventual"
+
+    # Search for the group by site name
+    search_terms = [
+        site_name,                    # exact name
+        site_name.replace(" ", ""),    # no spaces
+    ]
+
+    for term in search_terms:
+        try:
+            url = f'{GRAPH_BASE}/groups?$search="displayName:{term}"&$select=id,displayName,mail,groupTypes&$top=10'
+            resp = req.get(url, headers=headers, timeout=30)
+            if resp.status_code < 300:
+                groups = resp.json().get("value", [])
+                for g in groups:
+                    # Match: group name equals site name or is very close
+                    if g.get("displayName", "").lower() == site_name.lower():
+                        return g
+                    if site_name.lower() in g.get("displayName", "").lower():
+                        return g
+        except:
+            pass
+
+    # Fallback: try filter
+    try:
+        url = f"{GRAPH_BASE}/groups?$filter=displayName eq '{site_name}'&$select=id,displayName,mail"
+        resp = req.get(url, headers=connector._headers(), timeout=30)
+        if resp.status_code < 300:
+            groups = resp.json().get("value", [])
+            if groups:
+                return groups[0]
+    except:
+        pass
+
+    return None
+
+
+def find_group_from_site_permissions(connector, site_id, req):
+    """Try to find the Members group by looking at existing site permissions."""
+    try:
+        # Check site-level permissions
+        url = f"{GRAPH_BASE}/sites/{site_id}/permissions"
+        resp = req.get(url, headers=connector._headers(), timeout=30)
+        if resp.status_code < 300:
+            perms = resp.json().get("value", [])
+            for p in perms:
+                identity = p.get("grantedToIdentitiesV2", []) or p.get("grantedToIdentities", [])
+                for ident in identity:
+                    app = ident.get("application", {})
+                    user = ident.get("user", {})
+                    group = ident.get("group", {})
+                    if group and group.get("id"):
+                        return {"id": group["id"], "displayName": group.get("displayName", "Unknown")}
+    except:
+        pass
+
+    # Try getting the group from the associated Teams team
+    try:
+        url = f"{GRAPH_BASE}/groups?$filter=resourceProvisioningOptions/Any(x:x eq 'Team')&$select=id,displayName,mail&$top=999"
+        resp = req.get(url, headers=connector._headers(), timeout=30)
+        if resp.status_code < 300:
+            groups = resp.json().get("value", [])
+            for g in groups:
+                # Find matching group by name similarity
+                gname = g.get("displayName", "").lower()
+                if gname in connector._get(f"{GRAPH_BASE}/sites/{site_id}").get("displayName", "").lower():
+                    return g
+    except:
+        pass
+
+    return None
 
 
 def scan_drive(connector, drive_id, all_files=False, folder="root"):
