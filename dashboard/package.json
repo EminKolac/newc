@@ -1,0 +1,15 @@
+{
+  "name": "geopolitical-market-dashboard",
+  "version": "1.0.0",
+  "description": "Live dashboard tracking US markets, commodities, and geopolitical developments",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "yahoo-finance2": "^2.11.0"
+  }
+}

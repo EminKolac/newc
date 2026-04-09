@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geopolitical Market Dashboard — US-Iran / Strait of Hormuz</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <h1 class="logo">MARKET DASHBOARD</h1>
+      <span class="subtitle">US-Iran Ceasefire &amp; Strait of Hormuz Monitor</span>
+    </div>
+    <div class="header-right">
+      <div class="connection-status" id="connectionStatus">
+        <span class="status-dot"></span>
+        <span class="status-text">Connecting...</span>
+      </div>
+      <div class="market-state" id="marketState">--</div>
+      <div class="clock" id="clock">--:--:--</div>
+    </div>
+  </header>
+
+  <!-- Alert Banner -->
+  <div class="alert-banner" id="alertBanner" style="display:none;">
+    <div class="alert-icon">⚠</div>
+    <div class="alert-text" id="alertBannerText"></div>
+    <button class="alert-dismiss" onclick="dismissBanner()">✕</button>
+  </div>
+
+  <!-- Main Grid -->
+  <main class="dashboard">
+    <!-- Instrument Cards -->
+    <section class="instruments-grid" id="instrumentsGrid">
+      <!-- Cards injected by JS -->
+    </section>
+
+    <!-- Bottom Panel: Charts + News + Alerts -->
+    <section class="bottom-panel">
+      <!-- Chart Area -->
+      <div class="chart-panel">
+        <div class="chart-header">
+          <div class="chart-tabs" id="chartTabs">
+            <button class="chart-tab active" data-symbol="^GSPC">S&amp;P 500</button>
+            <button class="chart-tab" data-symbol="^IXIC">Nasdaq</button>
+            <button class="chart-tab" data-symbol="^DJI">Dow</button>
+            <button class="chart-tab" data-symbol="CL=F">Oil</button>
+            <button class="chart-tab" data-symbol="DX-Y.NYB">USD</button>
+            <button class="chart-tab" data-symbol="GC=F">Gold</button>
+          </div>
+          <div class="range-tabs" id="rangeTabs">
+            <button class="range-tab" data-range="1d">1D</button>
+            <button class="range-tab active" data-range="5d">5D</button>
+            <button class="range-tab" data-range="1mo">1M</button>
+            <button class="range-tab" data-range="3mo">3M</button>
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas id="mainChart"></canvas>
+        </div>
+        <div class="volatility-bar" id="volatilityBar">
+          <div class="vol-metric">
+            <span class="vol-label">ATR</span>
+            <span class="vol-value" id="volATR">--</span>
+          </div>
+          <div class="vol-metric">
+            <span class="vol-label">Std Dev</span>
+            <span class="vol-value" id="volStdDev">--</span>
+          </div>
+          <div class="vol-metric">
+            <span class="vol-label">Avg Range</span>
+            <span class="vol-value" id="volAvgRange">--</span>
+          </div>
+          <div class="vol-metric">
+            <span class="vol-label">Day Range %</span>
+            <span class="vol-value" id="volDayRange">--</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Side: News + Alerts -->
+      <div class="side-panel">
+        <!-- Alerts Log -->
+        <div class="alerts-panel">
+          <h3 class="panel-title">
+            <span class="panel-icon">⚠</span>
+            2%+ Move Alerts
+          </h3>
+          <div class="alerts-list" id="alertsList">
+            <div class="empty-state">No alerts triggered yet</div>
+          </div>
+        </div>
+
+        <!-- Geopolitical News -->
+        <div class="news-panel">
+          <h3 class="panel-title">
+            <span class="panel-icon">◉</span>
+            Geopolitical News Feed
+          </h3>
+          <div class="news-list" id="newsList">
+            <div class="empty-state">Loading news...</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>
