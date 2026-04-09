@@ -4,5 +4,13 @@
       "command": "/root/.local/bin/uvx",
       "args": ["--from", "tradingview-mcp-server", "tradingview-mcp"]
     }
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "pip install tradingview-mcp-server 2>/dev/null || true"
+      }
+    ]
   }
 }
