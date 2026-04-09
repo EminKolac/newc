@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Crisis Dashboard - US-Iran Tensions Monitor</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+</head>
+<body>
+    <!-- Alert Banner -->
+    <div id="alert-banner" class="alert-banner hidden">
+        <div class="alert-content">
+            <span class="alert-icon">&#9888;</span>
+            <span id="alert-text"></span>
+            <button id="alert-dismiss" class="alert-dismiss">&times;</button>
+        </div>
+    </div>
+
+    <header>
+        <div class="header-left">
+            <h1>Market Crisis Dashboard</h1>
+            <span class="subtitle">US-Iran Ceasefire &amp; Strait of Hormuz Monitor</span>
+        </div>
+        <div class="header-right">
+            <div class="status-indicator">
+                <span id="connection-dot" class="dot dot-live"></span>
+                <span id="connection-status">LIVE</span>
+            </div>
+            <div id="clock" class="clock"></div>
+            <div class="data-mode">
+                <label for="mode-toggle">Mode:</label>
+                <select id="mode-toggle">
+                    <option value="simulation">Simulation</option>
+                    <option value="api">Live API</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Top Row: Market Ticker Cards -->
+        <section class="ticker-strip">
+            <div class="ticker-card" id="card-sp500" data-symbol="SP500">
+                <div class="ticker-header">
+                    <span class="ticker-name">S&amp;P 500</span>
+                    <span class="ticker-symbol">^GSPC</span>
+                </div>
+                <div class="ticker-price" id="price-sp500">--</div>
+                <div class="ticker-change">
+                    <span id="change-sp500" class="change">--</span>
+                    <span id="pct-sp500" class="change-pct">--</span>
+                </div>
+                <div class="ticker-meta">
+                    <span>Vol: <span id="vol-sp500" class="vol-value">--</span></span>
+                    <span>Day Range: <span id="range-sp500">--</span></span>
+                </div>
+            </div>
+
+            <div class="ticker-card" id="card-nasdaq" data-symbol="NASDAQ">
+                <div class="ticker-header">
+                    <span class="ticker-name">NASDAQ</span>
+                    <span class="ticker-symbol">^IXIC</span>
+                </div>
+                <div class="ticker-price" id="price-nasdaq">--</div>
+                <div class="ticker-change">
+                    <span id="change-nasdaq" class="change">--</span>
+                    <span id="pct-nasdaq" class="change-pct">--</span>
+                </div>
+                <div class="ticker-meta">
+                    <span>Vol: <span id="vol-nasdaq" class="vol-value">--</span></span>
+                    <span>Day Range: <span id="range-nasdaq">--</span></span>
+                </div>
+            </div>
+
+            <div class="ticker-card" id="card-dow" data-symbol="DOW">
+                <div class="ticker-header">
+                    <span class="ticker-name">Dow Jones</span>
+                    <span class="ticker-symbol">^DJI</span>
+                </div>
+                <div class="ticker-price" id="price-dow">--</div>
+                <div class="ticker-change">
+                    <span id="change-dow" class="change">--</span>
+                    <span id="pct-dow" class="change-pct">--</span>
+                </div>
+                <div class="ticker-meta">
+                    <span>Vol: <span id="vol-dow" class="vol-value">--</span></span>
+                    <span>Day Range: <span id="range-dow">--</span></span>
+                </div>
+            </div>
+
+            <div class="ticker-card" id="card-oil" data-symbol="OIL">
+                <div class="ticker-header">
+                    <span class="ticker-name">Crude Oil (WTI)</span>
+                    <span class="ticker-symbol">CL=F</span>
+                </div>
+                <div class="ticker-price" id="price-oil">--</div>
+                <div class="ticker-change">
+                    <span id="change-oil" class="change">--</span>
+                    <span id="pct-oil" class="change-pct">--</span>
+                </div>
+                <div class="ticker-meta">
+                    <span>Vol: <span id="vol-oil" class="vol-value">--</span></span>
+                    <span>Day Range: <span id="range-oil">--</span></span>
+                </div>
+            </div>
+
+            <div class="ticker-card" id="card-dxy" data-symbol="DXY">
+                <div class="ticker-header">
+                    <span class="ticker-name">US Dollar Index</span>
+                    <span class="ticker-symbol">DX-Y.NYB</span>
+                </div>
+                <div class="ticker-price" id="price-dxy">--</div>
+                <div class="ticker-change">
+                    <span id="change-dxy" class="change">--</span>
+                    <span id="pct-dxy" class="change-pct">--</span>
+                </div>
+                <div class="ticker-meta">
+                    <span>Vol: <span id="vol-dxy" class="vol-value">--</span></span>
+                    <span>Day Range: <span id="range-dxy">--</span></span>
+                </div>
+            </div>
+
+            <div class="ticker-card" id="card-gold" data-symbol="GOLD">
+                <div class="ticker-header">
+                    <span class="ticker-name">Gold</span>
+                    <span class="ticker-symbol">GC=F</span>
+                </div>
+                <div class="ticker-price" id="price-gold">--</div>
+                <div class="ticker-change">
+                    <span id="change-gold" class="change">--</span>
+                    <span id="pct-gold" class="change-pct">--</span>
+                </div>
+                <div class="ticker-meta">
+                    <span>Vol: <span id="vol-gold" class="vol-value">--</span></span>
+                    <span>Day Range: <span id="range-gold">--</span></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Chart Section -->
+        <section class="charts-section">
+            <div class="chart-controls">
+                <div class="chart-tabs">
+                    <button class="chart-tab active" data-asset="sp500">S&amp;P 500</button>
+                    <button class="chart-tab" data-asset="nasdaq">NASDAQ</button>
+                    <button class="chart-tab" data-asset="dow">Dow</button>
+                    <button class="chart-tab" data-asset="oil">Oil</button>
+                    <button class="chart-tab" data-asset="dxy">USD Index</button>
+                    <button class="chart-tab" data-asset="gold">Gold</button>
+                    <button class="chart-tab" data-asset="overlay">Overlay All</button>
+                </div>
+                <div class="timeframe-tabs">
+                    <button class="tf-tab active" data-tf="1m">1M</button>
+                    <button class="tf-tab" data-tf="5m">5M</button>
+                    <button class="tf-tab" data-tf="15m">15M</button>
+                    <button class="tf-tab" data-tf="1h">1H</button>
+                    <button class="tf-tab" data-tf="1d">1D</button>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="main-chart"></canvas>
+            </div>
+        </section>
+
+        <!-- Bottom Section: Volatility + News + Alerts -->
+        <section class="bottom-section">
+            <!-- Volatility Panel -->
+            <div class="panel volatility-panel">
+                <h2>Volatility Metrics</h2>
+                <div class="vol-grid">
+                    <div class="vol-item">
+                        <div class="vol-label">S&amp;P 500 Realized Vol (20p)</div>
+                        <div class="vol-bar-container">
+                            <div id="volbar-sp500" class="vol-bar"></div>
+                        </div>
+                        <div id="volnum-sp500" class="vol-number">--</div>
+                    </div>
+                    <div class="vol-item">
+                        <div class="vol-label">NASDAQ Realized Vol (20p)</div>
+                        <div class="vol-bar-container">
+                            <div id="volbar-nasdaq" class="vol-bar"></div>
+                        </div>
+                        <div id="volnum-nasdaq" class="vol-number">--</div>
+                    </div>
+                    <div class="vol-item">
+                        <div class="vol-label">Dow Realized Vol (20p)</div>
+                        <div class="vol-bar-container">
+                            <div id="volbar-dow" class="vol-bar"></div>
+                        </div>
+                        <div id="volnum-dow" class="vol-number">--</div>
+                    </div>
+                    <div class="vol-item">
+                        <div class="vol-label">Crude Oil Realized Vol (20p)</div>
+                        <div class="vol-bar-container">
+                            <div id="volbar-oil" class="vol-bar"></div>
+                        </div>
+                        <div id="volnum-oil" class="vol-number">--</div>
+                    </div>
+                    <div class="vol-item">
+                        <div class="vol-label">USD Index Realized Vol (20p)</div>
+                        <div class="vol-bar-container">
+                            <div id="volbar-dxy" class="vol-bar"></div>
+                        </div>
+                        <div id="volnum-dxy" class="vol-number">--</div>
+                    </div>
+                    <div class="vol-item">
+                        <div class="vol-label">Gold Realized Vol (20p)</div>
+                        <div class="vol-bar-container">
+                            <div id="volbar-gold" class="vol-bar"></div>
+                        </div>
+                        <div id="volnum-gold" class="vol-number">--</div>
+                    </div>
+                </div>
+                <div class="vol-summary">
+                    <h3>Correlation Matrix (Rolling 20p)</h3>
+                    <table id="correlation-table" class="corr-table">
+                        <thead>
+                            <tr>
+                                <th></th><th>S&amp;P</th><th>NDX</th><th>DOW</th><th>OIL</th><th>DXY</th><th>GOLD</th>
+                            </tr>
+                        </thead>
+                        <tbody id="corr-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- News & Events Panel -->
+            <div class="panel news-panel">
+                <h2>Geopolitical News Feed</h2>
+                <div class="news-filters">
+                    <button class="news-filter active" data-filter="all">All</button>
+                    <button class="news-filter" data-filter="iran">US-Iran</button>
+                    <button class="news-filter" data-filter="hormuz">Strait of Hormuz</button>
+                    <button class="news-filter" data-filter="oil">Oil Supply</button>
+                    <button class="news-filter" data-filter="ceasefire">Ceasefire</button>
+                </div>
+                <div id="news-feed" class="news-feed">
+                    <!-- News items populated by JS -->
+                </div>
+                <div class="news-source-note">
+                    Sources: Reuters, AP, Bloomberg, Al Jazeera (Simulated feed)
+                </div>
+            </div>
+
+            <!-- Alerts Panel -->
+            <div class="panel alerts-panel">
+                <h2>Alert Log <span id="alert-count" class="alert-badge">0</span></h2>
+                <div class="alert-settings">
+                    <label>
+                        <input type="checkbox" id="alert-sound" checked> Sound
+                    </label>
+                    <label>
+                        Threshold: <input type="number" id="alert-threshold" value="2" min="0.1" max="10" step="0.1">%
+                    </label>
+                </div>
+                <div id="alert-log" class="alert-log">
+                    <!-- Alert entries populated by JS -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <span>Market Crisis Dashboard v1.0 | Data refresh: <span id="refresh-rate">3s</span></span>
+        <span>Last update: <span id="last-update">--</span></span>
+        <span class="disclaimer">Simulation mode uses synthetic data for demonstration. Connect API for live data.</span>
+    </footer>
+
+    <script src="js/data.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/alerts.js"></script>
+    <script src="js/news.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
