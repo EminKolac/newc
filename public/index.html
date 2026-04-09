@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Market &amp; Geopolitical Risk Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0e17;
+    --surface: #111827;
+    --surface2: #1a2236;
+    --border: #1e2a3a;
+    --text: #e2e8f0;
+    --text-muted: #8892a4;
+    --green: #10b981;
+    --green-bg: rgba(16, 185, 129, 0.12);
+    --red: #ef4444;
+    --red-bg: rgba(239, 68, 68, 0.12);
+    --blue: #3b82f6;
+    --blue-bg: rgba(59, 130, 246, 0.12);
+    --amber: #f59e0b;
+    --amber-bg: rgba(245, 158, 11, 0.12);
+    --purple: #8b5cf6;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    overflow-x: hidden;
+  }
+
+  /* ── Header ─────────────────────────────────────────────── */
+  .header {
+    background: linear-gradient(135deg, #111827 0%, #1a1f3a 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header h1 {
+    font-size: 20px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #60a5fa, #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .header-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    display: inline-block;
+    animation: pulse 2s infinite;
+  }
+  .status-dot.offline { background: var(--red); animation: none; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* ── Alert Banner ───────────────────────────────────────── */
+  .alert-banner {
+    background: linear-gradient(90deg, rgba(239,68,68,0.15), rgba(245,158,11,0.10));
+    border-bottom: 1px solid rgba(239,68,68,0.3);
+    padding: 10px 24px;
+    display: none;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    overflow: hidden;
+  }
+  .alert-banner.visible { display: flex; }
+  .alert-banner .alert-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .alert-marquee {
+    flex: 1;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .alert-marquee-inner {
+    display: inline-block;
+    animation: marquee 30s linear infinite;
+  }
+  .alert-marquee-inner span {
+    margin-right: 48px;
+    color: var(--amber);
+  }
+  @keyframes marquee {
+    0%   { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+  }
+
+  /* ── Layout ─────────────────────────────────────────────── */
+  .dashboard {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    grid-template-rows: auto auto 1fr;
+    gap: 16px;
+    padding: 16px 24px 24px;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+  @media (max-width: 1100px) {
+    .dashboard { grid-template-columns: 1fr; }
+  }
+
+  /* ── Cards ──────────────────────────────────────────────── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .card-body { padding: 16px 18px; }
+
+  /* ── Quote Tiles ────────────────────────────────────────── */
+  .quote-grid {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  .quote-tile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+  .quote-tile:hover {
+    border-color: var(--blue);
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
+  }
+  .quote-tile.selected {
+    border-color: var(--blue);
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+  }
+  .quote-tile.alert-active {
+    border-color: var(--red);
+    box-shadow: 0 0 24px rgba(239, 68, 68, 0.2);
+  }
+  .qt-category {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+  .qt-name {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .qt-price {
+    font-size: 26px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .qt-change {
+    font-size: 14px;
+    font-weight: 600;
+    margin-top: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .qt-change.up { color: var(--green); }
+  .qt-change.down { color: var(--red); }
+  .qt-meta {
+    display: flex;
+    gap: 12px;
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .qt-sparkline {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+    opacity: 0.3;
+  }
+  .qt-vol-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+  .qt-vol-badge.low { background: var(--green-bg); color: var(--green); }
+  .qt-vol-badge.medium { background: var(--amber-bg); color: var(--amber); }
+  .qt-vol-badge.high { background: var(--red-bg); color: var(--red); }
+
+  /* ── Charts ─────────────────────────────────────────────── */
+  .chart-section { grid-column: 1 / 2; grid-row: 2 / 4; }
+  .chart-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 8px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .chart-tab {
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text-muted);
+    border: none;
+    background: transparent;
+    transition: all 0.15s;
+  }
+  .chart-tab:hover { background: var(--surface2); color: var(--text); }
+  .chart-tab.active { background: var(--blue-bg); color: var(--blue); }
+  .chart-container {
+    padding: 16px;
+    height: 380px;
+    position: relative;
+  }
+
+  /* ── Volatility Table ───────────────────────────────────── */
+  .vol-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .vol-table th {
+    text-align: left;
+    color: var(--text-muted);
+    font-weight: 500;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .vol-table td {
+    padding: 10px;
+    border-bottom: 1px solid var(--border);
+    font-variant-numeric: tabular-nums;
+  }
+  .vol-table tr:last-child td { border-bottom: none; }
+  .vol-bar {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    overflow: hidden;
+    margin-top: 4px;
+  }
+  .vol-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.5s;
+  }
+
+  /* ── Sidebar ────────────────────────────────────────────── */
+  .sidebar {
+    grid-column: 2 / 3;
+    grid-row: 2 / 4;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  @media (max-width: 1100px) {
+    .sidebar { grid-column: 1 / -1; grid-row: auto; }
+  }
+
+  /* ── Alerts Panel ───────────────────────────────────────── */
+  .alert-list {
+    max-height: 260px;
+    overflow-y: auto;
+  }
+  .alert-item {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .alert-item:last-child { border-bottom: none; }
+  .alert-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-top: 6px;
+    flex-shrink: 0;
+  }
+  .alert-dot.up { background: var(--green); }
+  .alert-dot.down { background: var(--red); }
+  .alert-text {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .alert-time {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  /* ── News Feed ──────────────────────────────────────────── */
+  .news-list {
+    max-height: 350px;
+    overflow-y: auto;
+  }
+  .news-item {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .news-item:last-child { border-bottom: none; }
+  .news-title {
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--text);
+  }
+  .news-title a {
+    color: inherit;
+    text-decoration: none;
+  }
+  .news-title a:hover { color: var(--blue); }
+  .news-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    display: flex;
+    gap: 8px;
+  }
+  .news-tag {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--surface2);
+    color: var(--purple);
+  }
+
+  /* ── Scrollbar ──────────────────────────────────────────── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #2a3a4e; }
+
+  /* ── Empty state ────────────────────────────────────────── */
+  .empty-state {
+    text-align: center;
+    padding: 32px 16px;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+  .empty-state .icon { font-size: 32px; margin-bottom: 8px; }
+
+  /* ── Risk Meter ─────────────────────────────────────────── */
+  .risk-meter {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 0 8px;
+  }
+  .risk-gauge {
+    flex: 1;
+    height: 8px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--green), var(--amber), var(--red));
+    position: relative;
+  }
+  .risk-needle {
+    position: absolute;
+    top: -4px;
+    width: 4px;
+    height: 16px;
+    background: white;
+    border-radius: 2px;
+    transition: left 0.5s;
+    box-shadow: 0 0 8px rgba(255,255,255,0.5);
+  }
+  .risk-label {
+    font-size: 14px;
+    font-weight: 700;
+    min-width: 40px;
+    text-align: right;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────────── -->
+<div class="header">
+  <div>
+    <h1>Market & Geopolitical Risk Dashboard</h1>
+    <div class="header-sub">US Markets | Oil & Commodities | US-Iran / Strait of Hormuz</div>
+  </div>
+  <div class="status-bar">
+    <span id="lastUpdate">--</span>
+    <span class="status-dot" id="statusDot"></span>
+    <span id="statusText">Connecting...</span>
+  </div>
+</div>
+
+<!-- ── Alert Banner ───────────────────────────────────────── -->
+<div class="alert-banner" id="alertBanner">
+  <span class="alert-icon">&#9888;</span>
+  <div class="alert-marquee">
+    <div class="alert-marquee-inner" id="alertMarquee"></div>
+  </div>
+</div>
+
+<div class="dashboard">
+  <!-- ── Quote Tiles ──────────────────────────────────────── -->
+  <div class="quote-grid" id="quoteGrid"></div>
+
+  <!-- ── Main Chart ───────────────────────────────────────── -->
+  <div class="card chart-section">
+    <div class="card-header">
+      <span>Price Chart</span>
+      <span id="chartSymbolLabel">--</span>
+    </div>
+    <div class="chart-tabs" id="chartTabs"></div>
+    <div class="chart-container">
+      <canvas id="mainChart"></canvas>
+    </div>
+  </div>
+
+  <!-- ── Sidebar ──────────────────────────────────────────── -->
+  <div class="sidebar">
+    <!-- Risk Meter -->
+    <div class="card">
+      <div class="card-header">
+        <span>Geopolitical Risk Index</span>
+      </div>
+      <div class="card-body">
+        <div class="risk-meter">
+          <div class="risk-gauge">
+            <div class="risk-needle" id="riskNeedle" style="left: 30%"></div>
+          </div>
+          <div class="risk-label" id="riskLabel">--</div>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;" id="riskExplain">
+          Based on oil price moves, equity volatility, and news flow
+        </div>
+      </div>
+    </div>
+
+    <!-- Volatility -->
+    <div class="card">
+      <div class="card-header"><span>Volatility Metrics</span></div>
+      <div class="card-body" style="padding: 0;">
+        <table class="vol-table" id="volTable">
+          <thead>
+            <tr>
+              <th>Asset</th>
+              <th>Session Vol</th>
+              <th>Ann. Vol</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="volBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Alerts -->
+    <div class="card">
+      <div class="card-header">
+        <span>Alerts (&gt;2% Moves)</span>
+        <span id="alertCount" style="color: var(--red); font-size: 13px;">0</span>
+      </div>
+      <div class="card-body" style="padding: 8px 18px;">
+        <div class="alert-list" id="alertList">
+          <div class="empty-state">
+            <div class="icon">&#128276;</div>
+            No alerts triggered yet
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- News -->
+    <div class="card">
+      <div class="card-header">
+        <span>Geopolitical News</span>
+        <span style="font-size: 11px; color: var(--purple);">LIVE</span>
+      </div>
+      <div class="card-body" style="padding: 8px 18px;">
+        <div class="news-list" id="newsList">
+          <div class="empty-state">
+            <div class="icon">&#128240;</div>
+            Fetching headlines...
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────────
+const SYMBOLS = ['^GSPC', '^IXIC', '^DJI', 'CL=F', 'DX-Y.NYB', 'GC=F'];
+const SYMBOL_COLORS = {
+  '^GSPC':    '#3b82f6',
+  '^IXIC':    '#8b5cf6',
+  '^DJI':     '#06b6d4',
+  'CL=F':     '#f59e0b',
+  'DX-Y.NYB': '#10b981',
+  'GC=F':     '#eab308',
+};
+
+let selectedSymbol = '^GSPC';
+let data = null;
+let mainChart = null;
+let ws = null;
+let reconnectTimer = null;
+
+// ── WebSocket ─────────────────────────────────────────────────────────
+function connect() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}`);
+
+  ws.onopen = () => {
+    document.getElementById('statusDot').classList.remove('offline');
+    document.getElementById('statusText').textContent = 'Live';
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+  };
+
+  ws.onmessage = (e) => {
+    try {
+      data = JSON.parse(e.data);
+      render();
+    } catch (err) {
+      console.error('Parse error', err);
+    }
+  };
+
+  ws.onclose = () => {
+    document.getElementById('statusDot').classList.add('offline');
+    document.getElementById('statusText').textContent = 'Reconnecting...';
+    reconnectTimer = setTimeout(connect, 3000);
+  };
+
+  ws.onerror = () => ws.close();
+}
+
+// ── Rendering ─────────────────────────────────────────────────────────
+function render() {
+  if (!data) return;
+  renderQuoteTiles();
+  renderChart();
+  renderVolatility();
+  renderAlerts();
+  renderNews();
+  renderRiskMeter();
+  updateTimestamp();
+}
+
+function updateTimestamp() {
+  const el = document.getElementById('lastUpdate');
+  el.textContent = new Date(data.timestamp).toLocaleTimeString();
+}
+
+// ── Quote Tiles ───────────────────────────────────────────────────────
+function renderQuoteTiles() {
+  const grid = document.getElementById('quoteGrid');
+  const quotes = data.quotes;
+  const volatility = data.volatility;
+
+  // Build tiles if empty
+  if (!grid.children.length) {
+    for (const sym of SYMBOLS) {
+      const tile = document.createElement('div');
+      tile.className = 'quote-tile';
+      tile.dataset.symbol = sym;
+      tile.onclick = () => selectSymbol(sym);
+      grid.appendChild(tile);
+    }
+  }
+
+  for (const tile of grid.children) {
+    const sym = tile.dataset.symbol;
+    const q = quotes[sym];
+    if (!q) continue;
+
+    const isUp = (q.changePct || 0) >= 0;
+    const vol = volatility[sym];
+    let volLevel = 'low';
+    if (vol && vol.annualized > 30) volLevel = 'high';
+    else if (vol && vol.annualized > 15) volLevel = 'medium';
+
+    const isAlert = Math.abs(q.changePct || 0) >= 2;
+
+    tile.className = 'quote-tile' +
+      (sym === selectedSymbol ? ' selected' : '') +
+      (isAlert ? ' alert-active' : '');
+
+    tile.innerHTML = `
+      <div class="qt-category">${q.category}</div>
+      <div class="qt-name">${q.name}</div>
+      <div class="qt-price">${formatPrice(q.price, sym)}</div>
+      <div class="qt-change ${isUp ? 'up' : 'down'}">
+        ${isUp ? '&#9650;' : '&#9660;'}
+        ${q.change != null ? (isUp ? '+' : '') + q.change.toFixed(2) : '--'}
+        (${q.changePct != null ? (isUp ? '+' : '') + q.changePct.toFixed(2) : '--'}%)
+      </div>
+      <div class="qt-meta">
+        <span>Vol: ${q.volume ? formatVolume(q.volume) : '--'}</span>
+        <span>H: ${q.dayHigh != null ? formatPrice(q.dayHigh, sym) : '--'}</span>
+        <span>L: ${q.dayLow != null ? formatPrice(q.dayLow, sym) : '--'}</span>
+      </div>
+      ${vol ? `<div class="qt-vol-badge ${volLevel}">${volLevel.toUpperCase()} VOL</div>` : ''}
+    `;
+  }
+}
+
+function formatPrice(price, sym) {
+  if (price == null) return '--';
+  if (sym === 'GC=F' || sym === 'CL=F') return price.toFixed(2);
+  if (sym === 'DX-Y.NYB') return price.toFixed(3);
+  return price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatVolume(vol) {
+  if (vol >= 1e9) return (vol / 1e9).toFixed(1) + 'B';
+  if (vol >= 1e6) return (vol / 1e6).toFixed(1) + 'M';
+  if (vol >= 1e3) return (vol / 1e3).toFixed(1) + 'K';
+  return vol.toString();
+}
+
+function selectSymbol(sym) {
+  selectedSymbol = sym;
+  render();
+}
+
+// ── Main Chart ────────────────────────────────────────────────────────
+function renderChart() {
+  const ctx = document.getElementById('mainChart');
+  const history = data.history[selectedSymbol] || [];
+  const q = data.quotes[selectedSymbol];
+  const label = q ? q.name : selectedSymbol;
+
+  document.getElementById('chartSymbolLabel').textContent = label;
+
+  // Build tabs
+  const tabsEl = document.getElementById('chartTabs');
+  if (!tabsEl.children.length) {
+    for (const sym of SYMBOLS) {
+      const btn = document.createElement('button');
+      btn.className = 'chart-tab';
+      btn.dataset.symbol = sym;
+      btn.textContent = data.quotes[sym]?.name || sym;
+      btn.onclick = () => selectSymbol(sym);
+      tabsEl.appendChild(btn);
+    }
+  }
+  for (const btn of tabsEl.children) {
+    btn.classList.toggle('active', btn.dataset.symbol === selectedSymbol);
+  }
+
+  const color = SYMBOL_COLORS[selectedSymbol] || '#3b82f6';
+  const prices = history.map(h => ({ x: h.time, y: h.price }));
+
+  if (mainChart) {
+    mainChart.data.datasets[0].data = prices;
+    mainChart.data.datasets[0].borderColor = color;
+    mainChart.data.datasets[0].backgroundColor = color + '20';
+    mainChart.data.datasets[0].label = label;
+    mainChart.update('none');
+    return;
+  }
+
+  mainChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      datasets: [{
+        label: label,
+        data: prices,
+        borderColor: color,
+        backgroundColor: color + '20',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.3,
+        pointRadius: 0,
+        pointHitRadius: 8,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1a2236',
+          borderColor: '#2a3a4e',
+          borderWidth: 1,
+          titleColor: '#e2e8f0',
+          bodyColor: '#e2e8f0',
+          padding: 12,
+          displayColors: false,
+          callbacks: {
+            title: (items) => new Date(items[0].parsed.x).toLocaleTimeString(),
+            label: (item) => `${label}: ${item.parsed.y.toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: { unit: 'minute', displayFormats: { minute: 'HH:mm' } },
+          grid: { color: '#1e2a3a', drawBorder: false },
+          ticks: { color: '#8892a4', maxTicksLimit: 8 },
+        },
+        y: {
+          grid: { color: '#1e2a3a', drawBorder: false },
+          ticks: {
+            color: '#8892a4',
+            callback: (v) => v.toLocaleString(),
+          }
+        }
+      }
+    }
+  });
+}
+
+// ── Volatility Table ──────────────────────────────────────────────────
+function renderVolatility() {
+  const tbody = document.getElementById('volBody');
+  let html = '';
+
+  for (const sym of SYMBOLS) {
+    const vol = data.volatility[sym];
+    const q = data.quotes[sym];
+    const name = q?.name || sym;
+    const sessionVol = vol ? vol.stdDev.toFixed(4) + '%' : '--';
+    const annVol = vol ? vol.annualized.toFixed(1) + '%' : '--';
+    const barPct = vol ? Math.min(vol.annualized / 60 * 100, 100) : 0;
+
+    let barColor = 'var(--green)';
+    if (vol && vol.annualized > 30) barColor = 'var(--red)';
+    else if (vol && vol.annualized > 15) barColor = 'var(--amber)';
+
+    html += `
+      <tr>
+        <td style="font-weight: 500; color: ${SYMBOL_COLORS[sym]}">${name}</td>
+        <td>${sessionVol}</td>
+        <td>${annVol}</td>
+        <td style="width: 60px;">
+          <div class="vol-bar">
+            <div class="vol-bar-fill" style="width: ${barPct}%; background: ${barColor};"></div>
+          </div>
+        </td>
+      </tr>
+    `;
+  }
+
+  tbody.innerHTML = html;
+}
+
+// ── Alerts ────────────────────────────────────────────────────────────
+function renderAlerts() {
+  const list = document.getElementById('alertList');
+  const alerts = data.alerts || [];
+  const banner = document.getElementById('alertBanner');
+  const marquee = document.getElementById('alertMarquee');
+
+  document.getElementById('alertCount').textContent = alerts.length;
+
+  if (!alerts.length) {
+    list.innerHTML = '<div class="empty-state"><div class="icon">&#128276;</div>No alerts triggered yet</div>';
+    banner.classList.remove('visible');
+    return;
+  }
+
+  // Show banner with latest alerts
+  const recentAlerts = alerts.slice(-5);
+  marquee.innerHTML = recentAlerts.map(a =>
+    `<span>${a.msg}</span>`
+  ).join('');
+  banner.classList.add('visible');
+
+  // Render alert list (newest first)
+  const reversed = [...alerts].reverse();
+  list.innerHTML = reversed.map(a => {
+    const isUp = a.pctChange > 0;
+    const time = new Date(a.time).toLocaleTimeString();
+    return `
+      <div class="alert-item">
+        <div class="alert-dot ${isUp ? 'up' : 'down'}"></div>
+        <div>
+          <div class="alert-text">${a.msg}</div>
+          <div class="alert-time">${time}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ── News ──────────────────────────────────────────────────────────────
+function renderNews() {
+  const list = document.getElementById('newsList');
+  const news = data.news || [];
+
+  if (!news.length) {
+    list.innerHTML = '<div class="empty-state"><div class="icon">&#128240;</div>Fetching headlines...</div>';
+    return;
+  }
+
+  list.innerHTML = news.map(n => {
+    const time = new Date(n.time).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return `
+      <div class="news-item">
+        <div class="news-title"><a href="${n.link}" target="_blank" rel="noopener">${n.title}</a></div>
+        <div class="news-meta">
+          ${n.source ? `<span>${n.source}</span>` : ''}
+          <span>${time}</span>
+          <span class="news-tag">${n.query}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ── Risk Meter ────────────────────────────────────────────────────────
+function renderRiskMeter() {
+  const needle = document.getElementById('riskNeedle');
+  const label = document.getElementById('riskLabel');
+  const explain = document.getElementById('riskExplain');
+
+  // Compute a composite risk score (0-100) from:
+  // - Oil price change magnitude (weight: 40%)
+  // - Equity avg absolute change (weight: 30%)
+  // - Max volatility (weight: 20%)
+  // - Number of active alerts (weight: 10%)
+  let oilRisk = 0, equityRisk = 0, volRisk = 0, alertRisk = 0;
+
+  const oilQ = data.quotes['CL=F'];
+  if (oilQ && oilQ.changePct != null) {
+    oilRisk = Math.min(Math.abs(oilQ.changePct) / 5 * 100, 100);
+  }
+
+  const eqSyms = ['^GSPC', '^IXIC', '^DJI'];
+  let eqSum = 0, eqCount = 0;
+  for (const s of eqSyms) {
+    const q = data.quotes[s];
+    if (q && q.changePct != null) {
+      eqSum += Math.abs(q.changePct);
+      eqCount++;
+    }
+  }
+  if (eqCount) equityRisk = Math.min((eqSum / eqCount) / 3 * 100, 100);
+
+  let maxVol = 0;
+  for (const sym of SYMBOLS) {
+    const v = data.volatility[sym];
+    if (v && v.annualized > maxVol) maxVol = v.annualized;
+  }
+  volRisk = Math.min(maxVol / 50 * 100, 100);
+
+  alertRisk = Math.min((data.alerts?.length || 0) / 5 * 100, 100);
+
+  const score = Math.round(oilRisk * 0.4 + equityRisk * 0.3 + volRisk * 0.2 + alertRisk * 0.1);
+
+  needle.style.left = `calc(${score}% - 2px)`;
+
+  let riskText = 'LOW';
+  let riskColor = 'var(--green)';
+  if (score > 65) { riskText = 'HIGH'; riskColor = 'var(--red)'; }
+  else if (score > 35) { riskText = 'MED'; riskColor = 'var(--amber)'; }
+
+  label.textContent = score;
+  label.style.color = riskColor;
+
+  const factors = [];
+  if (oilRisk > 50) factors.push('oil price stress');
+  if (equityRisk > 50) factors.push('equity selloff');
+  if (volRisk > 50) factors.push('elevated volatility');
+  if (alertRisk > 50) factors.push('multiple alerts');
+  explain.textContent = factors.length
+    ? `Driven by: ${factors.join(', ')}`
+    : 'Based on oil price moves, equity volatility, and news flow';
+}
+
+// ── Fallback polling (if WebSocket fails) ─────────────────────────────
+async function fallbackPoll() {
+  try {
+    const res = await fetch('/api/snapshot');
+    data = await res.json();
+    render();
+  } catch (e) {
+    console.error('Poll error', e);
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────
+connect();
+// Also poll as backup every 35s
+setInterval(() => {
+  if (!ws || ws.readyState !== WebSocket.OPEN) fallbackPoll();
+}, 35000);
+</script>
+</body>
+</html>

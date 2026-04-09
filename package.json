@@ -1,0 +1,14 @@
+{
+  "name": "market-geopolitical-dashboard",
+  "version": "1.0.0",
+  "description": "Live US market dashboard tracking indices, commodities, and geopolitical risk tied to US-Iran/Strait of Hormuz developments",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "ws": "^8.18.0"
+  }
+}
