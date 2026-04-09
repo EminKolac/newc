@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geopolitical Market Dashboard - US-Iran Crisis Monitor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Top Alert Banner -->
+    <div id="alert-banner" class="alert-banner hidden">
+        <span id="alert-icon">&#9888;</span>
+        <span id="alert-text"></span>
+        <button id="alert-dismiss" onclick="dismissAlert()">&times;</button>
+    </div>
+
+    <!-- Header -->
+    <header class="dashboard-header">
+        <div class="header-left">
+            <h1>Geopolitical Market Dashboard</h1>
+            <span class="subtitle">US-Iran Ceasefire &amp; Strait of Hormuz Monitor</span>
+        </div>
+        <div class="header-right">
+            <div class="market-status" id="market-status">
+                <span class="status-dot"></span>
+                <span id="status-text">LIVE</span>
+            </div>
+            <div class="clock" id="clock"></div>
+            <div class="threat-level" id="threat-level">
+                <span class="threat-label">GEOPOLITICAL RISK</span>
+                <span class="threat-value" id="threat-value">ELEVATED</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Ticker Strip -->
+    <div class="ticker-strip" id="ticker-strip"></div>
+
+    <!-- Main Grid -->
+    <main class="dashboard-grid">
+        <!-- Left Column: Charts -->
+        <section class="charts-panel">
+            <div class="panel-header">
+                <h2>Market Charts</h2>
+                <div class="chart-controls">
+                    <button class="tf-btn active" data-tf="1m">1M</button>
+                    <button class="tf-btn" data-tf="5m">5M</button>
+                    <button class="tf-btn" data-tf="15m">15M</button>
+                    <button class="tf-btn" data-tf="1h">1H</button>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="chart-title">
+                        <span>S&amp;P 500</span>
+                        <span class="chart-price" id="price-sp500"></span>
+                        <span class="chart-change" id="change-sp500"></span>
+                    </div>
+                    <canvas id="chart-sp500"></canvas>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">
+                        <span>NASDAQ Composite</span>
+                        <span class="chart-price" id="price-nasdaq"></span>
+                        <span class="chart-change" id="change-nasdaq"></span>
+                    </div>
+                    <canvas id="chart-nasdaq"></canvas>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">
+                        <span>Dow Jones</span>
+                        <span class="chart-price" id="price-dow"></span>
+                        <span class="chart-change" id="change-dow"></span>
+                    </div>
+                    <canvas id="chart-dow"></canvas>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">
+                        <span>Crude Oil (WTI)</span>
+                        <span class="chart-price" id="price-oil"></span>
+                        <span class="chart-change" id="change-oil"></span>
+                    </div>
+                    <canvas id="chart-oil"></canvas>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">
+                        <span>Gold (XAU/USD)</span>
+                        <span class="chart-price" id="price-gold"></span>
+                        <span class="chart-change" id="change-gold"></span>
+                    </div>
+                    <canvas id="chart-gold"></canvas>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">
+                        <span>US Dollar Index (DXY)</span>
+                        <span class="chart-price" id="price-dxy"></span>
+                        <span class="chart-change" id="change-dxy"></span>
+                    </div>
+                    <canvas id="chart-dxy"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Column: Metrics + News -->
+        <aside class="sidebar">
+            <!-- Volatility Panel -->
+            <div class="sidebar-panel volatility-panel">
+                <h3>Volatility Metrics</h3>
+                <table class="vol-table">
+                    <thead>
+                        <tr>
+                            <th>Asset</th>
+                            <th>ATR</th>
+                            <th>&sigma; (20)</th>
+                            <th>Range%</th>
+                            <th>VScore</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vol-table-body"></tbody>
+                </table>
+                <div class="vix-gauge">
+                    <h4>Implied Volatility Index (VIX Proxy)</h4>
+                    <div class="gauge-container">
+                        <div class="gauge-bar">
+                            <div class="gauge-fill" id="vix-fill"></div>
+                            <div class="gauge-marker" id="vix-marker"></div>
+                        </div>
+                        <div class="gauge-labels">
+                            <span>0</span>
+                            <span>20</span>
+                            <span>40</span>
+                            <span>60</span>
+                            <span>80+</span>
+                        </div>
+                        <div class="gauge-value" id="vix-value"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Correlation Matrix -->
+            <div class="sidebar-panel correlation-panel">
+                <h3>Cross-Asset Correlation</h3>
+                <div class="corr-matrix" id="corr-matrix"></div>
+            </div>
+
+            <!-- Alerts Log -->
+            <div class="sidebar-panel alerts-panel">
+                <h3>
+                    Alert Log
+                    <span class="alert-count" id="alert-count">0</span>
+                </h3>
+                <div class="alerts-list" id="alerts-list"></div>
+            </div>
+
+            <!-- News Feed -->
+            <div class="sidebar-panel news-panel">
+                <h3>
+                    Geopolitical News Feed
+                    <span class="news-live-dot"></span>
+                </h3>
+                <div class="news-filters">
+                    <button class="news-filter active" data-filter="all">All</button>
+                    <button class="news-filter" data-filter="iran">Iran</button>
+                    <button class="news-filter" data-filter="hormuz">Hormuz</button>
+                    <button class="news-filter" data-filter="oil">Oil</button>
+                    <button class="news-filter" data-filter="ceasefire">Ceasefire</button>
+                </div>
+                <div class="news-list" id="news-list"></div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- Footer -->
+    <footer class="dashboard-footer">
+        <span>Data is simulated for demonstration. Connect live feeds (Yahoo Finance, Reuters, Bloomberg API) for production use.</span>
+        <span>Dashboard refreshes every second | Alerts trigger at &ge;2% move</span>
+    </footer>
+
+    <script src="dashboard.js"></script>
+</body>
+</html>
