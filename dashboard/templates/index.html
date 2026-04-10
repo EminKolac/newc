@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>US Market &amp; Geopolitical Risk Dashboard</title>
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+</head>
+<body>
+  <!-- ─── Alert Banner ─────────────────────────────────────────────── -->
+  <div id="alert-banner" class="alert-banner hidden">
+    <span id="alert-banner-text"></span>
+    <button id="alert-dismiss" class="alert-dismiss">&times;</button>
+  </div>
+
+  <!-- ─── Header ───────────────────────────────────────────────────── -->
+  <header class="header">
+    <div class="header-left">
+      <h1 class="logo">Market<span class="logo-accent">Pulse</span></h1>
+      <span class="subtitle">US Markets &amp; Geopolitical Risk Monitor</span>
+    </div>
+    <div class="header-right">
+      <span id="last-update" class="last-update">Loading…</span>
+      <span id="market-status" class="market-status"></span>
+    </div>
+  </header>
+
+  <!-- ─── Ticker Strip ─────────────────────────────────────────────── -->
+  <section id="ticker-strip" class="ticker-strip">
+    <!-- Populated by JS -->
+  </section>
+
+  <!-- ─── Main Grid ────────────────────────────────────────────────── -->
+  <main class="dashboard-grid">
+
+    <!-- LEFT: Charts -->
+    <section class="panel chart-panel">
+      <div class="panel-header">
+        <h2>Price Charts</h2>
+        <div class="chart-controls">
+          <select id="chart-instrument" class="control-select">
+            <option value="^GSPC">S&amp;P 500</option>
+            <option value="^IXIC">Nasdaq</option>
+            <option value="^DJI">Dow Jones</option>
+            <option value="CL=F">WTI Crude Oil</option>
+            <option value="DX-Y.NYB">US Dollar Index</option>
+            <option value="GC=F">Gold</option>
+          </select>
+          <div class="period-buttons" id="period-buttons">
+            <button class="period-btn" data-period="1d">1D</button>
+            <button class="period-btn" data-period="5d">5D</button>
+            <button class="period-btn active" data-period="1mo">1M</button>
+            <button class="period-btn" data-period="3mo">3M</button>
+            <button class="period-btn" data-period="6mo">6M</button>
+            <button class="period-btn" data-period="1y">1Y</button>
+          </div>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas id="price-chart"></canvas>
+      </div>
+      <div class="chart-container chart-volume">
+        <canvas id="volume-chart"></canvas>
+      </div>
+    </section>
+
+    <!-- RIGHT: Sidebar panels -->
+    <aside class="sidebar">
+
+      <!-- Volatility Metrics -->
+      <section class="panel volatility-panel">
+        <div class="panel-header">
+          <h2>Volatility Metrics</h2>
+          <button id="refresh-vol" class="btn-icon" title="Refresh">&#8635;</button>
+        </div>
+        <div id="volatility-table" class="vol-table-wrap">
+          <table class="vol-table">
+            <thead>
+              <tr>
+                <th>Instrument</th>
+                <th>Daily Vol</th>
+                <th>Ann. Vol</th>
+                <th>Max DD</th>
+                <th>ATR(20)</th>
+              </tr>
+            </thead>
+            <tbody id="vol-tbody">
+              <tr><td colspan="5" class="loading-cell">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="chart-container chart-rolling-vol">
+          <canvas id="rolling-vol-chart"></canvas>
+        </div>
+      </section>
+
+      <!-- Alerts -->
+      <section class="panel alerts-panel">
+        <div class="panel-header">
+          <h2>Alerts <span class="badge" id="alert-count">0</span></h2>
+          <span class="alert-threshold">Threshold: &ge;2%</span>
+        </div>
+        <ul id="alerts-list" class="alerts-list">
+          <li class="no-alerts">No significant moves detected</li>
+        </ul>
+      </section>
+
+      <!-- News Feed -->
+      <section class="panel news-panel">
+        <div class="panel-header">
+          <h2>US-Iran &amp; Strait of Hormuz News</h2>
+        </div>
+        <ul id="news-list" class="news-list">
+          <li class="loading-cell">Loading news…</li>
+        </ul>
+      </section>
+
+    </aside>
+  </main>
+
+  <!-- ─── Footer ───────────────────────────────────────────────────── -->
+  <footer class="footer">
+    <span>Data via Yahoo Finance &middot; News via Google News RSS &middot; Refreshes every 30 s</span>
+    <span>Auto-alerts for moves &ge; 2% &middot; Dashboard updates in real-time</span>
+  </footer>
+
+  <script src="/static/js/dashboard.js"></script>
+</body>
+</html>
