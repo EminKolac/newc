@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geopolitical Market Dashboard</title>
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <h1>Geopolitical Market Dashboard</h1>
+      <span class="header-subtitle">US-Iran / Strait of Hormuz Risk Monitor</span>
+    </div>
+    <div class="header-right">
+      <div class="market-status" id="marketStatus">
+        <span class="status-dot"></span>
+        <span class="status-text">Connecting...</span>
+      </div>
+      <div class="last-update" id="lastUpdate">--</div>
+      <div class="refresh-controls">
+        <select id="refreshInterval" title="Auto-refresh interval">
+          <option value="15">15s</option>
+          <option value="30" selected>30s</option>
+          <option value="60">60s</option>
+          <option value="0">Manual</option>
+        </select>
+        <button id="refreshBtn" class="btn-refresh" title="Refresh now">&#8635;</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Alert Banner -->
+  <div class="alert-banner" id="alertBanner" style="display:none;">
+    <span class="alert-icon">&#9888;</span>
+    <span class="alert-text" id="alertText"></span>
+    <button class="alert-dismiss" id="alertDismiss">&times;</button>
+  </div>
+
+  <!-- Instrument Cards -->
+  <section class="cards-grid" id="cardsGrid">
+    <div class="card" data-symbol="^GSPC">
+      <div class="card-header">
+        <span class="card-name">S&P 500</span>
+        <span class="card-badge badge-index">INDEX</span>
+      </div>
+      <div class="card-price">--</div>
+      <div class="card-change">--</div>
+      <canvas class="card-spark" width="120" height="40"></canvas>
+    </div>
+    <div class="card" data-symbol="^IXIC">
+      <div class="card-header">
+        <span class="card-name">Nasdaq</span>
+        <span class="card-badge badge-index">INDEX</span>
+      </div>
+      <div class="card-price">--</div>
+      <div class="card-change">--</div>
+      <canvas class="card-spark" width="120" height="40"></canvas>
+    </div>
+    <div class="card" data-symbol="^DJI">
+      <div class="card-header">
+        <span class="card-name">Dow Jones</span>
+        <span class="card-badge badge-index">INDEX</span>
+      </div>
+      <div class="card-price">--</div>
+      <div class="card-change">--</div>
+      <canvas class="card-spark" width="120" height="40"></canvas>
+    </div>
+    <div class="card" data-symbol="CL=F">
+      <div class="card-header">
+        <span class="card-name">Crude Oil</span>
+        <span class="card-badge badge-commodity">OIL</span>
+      </div>
+      <div class="card-price">--</div>
+      <div class="card-change">--</div>
+      <canvas class="card-spark" width="120" height="40"></canvas>
+    </div>
+    <div class="card" data-symbol="DX-Y.NYB">
+      <div class="card-header">
+        <span class="card-name">US Dollar Index</span>
+        <span class="card-badge badge-fx">FX</span>
+      </div>
+      <div class="card-price">--</div>
+      <div class="card-change">--</div>
+      <canvas class="card-spark" width="120" height="40"></canvas>
+    </div>
+    <div class="card" data-symbol="GC=F">
+      <div class="card-header">
+        <span class="card-name">Gold</span>
+        <span class="card-badge badge-commodity">GOLD</span>
+      </div>
+      <div class="card-price">--</div>
+      <div class="card-change">--</div>
+      <canvas class="card-spark" width="120" height="40"></canvas>
+    </div>
+  </section>
+
+  <!-- Main Content Area -->
+  <section class="main-content">
+    <!-- Chart Panel -->
+    <div class="chart-panel">
+      <div class="chart-controls">
+        <div class="chart-tabs" id="chartTabs">
+          <button class="chart-tab active" data-symbol="^GSPC">S&P 500</button>
+          <button class="chart-tab" data-symbol="^IXIC">Nasdaq</button>
+          <button class="chart-tab" data-symbol="^DJI">Dow</button>
+          <button class="chart-tab" data-symbol="CL=F">Oil</button>
+          <button class="chart-tab" data-symbol="DX-Y.NYB">USD</button>
+          <button class="chart-tab" data-symbol="GC=F">Gold</button>
+        </div>
+        <div class="range-tabs" id="rangeTabs">
+          <button class="range-tab active" data-range="1d" data-interval="5m">1D</button>
+          <button class="range-tab" data-range="5d" data-interval="15m">5D</button>
+          <button class="range-tab" data-range="1mo" data-interval="1h">1M</button>
+          <button class="range-tab" data-range="3mo" data-interval="1d">3M</button>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas id="mainChart"></canvas>
+      </div>
+      <div class="chart-info" id="chartInfo">
+        <span class="chart-info-item">O: <b id="infoOpen">--</b></span>
+        <span class="chart-info-item">H: <b id="infoHigh">--</b></span>
+        <span class="chart-info-item">L: <b id="infoLow">--</b></span>
+        <span class="chart-info-item">C: <b id="infoClose">--</b></span>
+        <span class="chart-info-item">Vol: <b id="infoVol">--</b></span>
+      </div>
+    </div>
+
+    <!-- Right Sidebar -->
+    <div class="sidebar">
+      <!-- Volatility Metrics -->
+      <div class="panel volatility-panel">
+        <h3 class="panel-title">Volatility Metrics</h3>
+        <table class="vol-table" id="volTable">
+          <thead>
+            <tr>
+              <th>Instrument</th>
+              <th>Daily Vol</th>
+              <th>Ann. Vol</th>
+              <th>Max DD</th>
+              <th>ATR</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="5" class="loading-cell">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Alert Log -->
+      <div class="panel alerts-panel">
+        <h3 class="panel-title">
+          Alerts
+          <span class="alert-threshold-label">Threshold:</span>
+          <select id="alertThreshold" class="threshold-select">
+            <option value="1">1%</option>
+            <option value="2" selected>2%</option>
+            <option value="3">3%</option>
+            <option value="5">5%</option>
+          </select>
+        </h3>
+        <div class="alert-log" id="alertLog">
+          <div class="alert-empty">No alerts yet. Monitoring for significant moves...</div>
+        </div>
+      </div>
+
+      <!-- Geopolitical News -->
+      <div class="panel news-panel">
+        <h3 class="panel-title">
+          Geopolitical News Feed
+          <span class="news-badge">LIVE</span>
+        </h3>
+        <div class="news-list" id="newsList">
+          <div class="news-loading">Fetching latest headlines...</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <span>Data: Yahoo Finance (delayed) | News: Google News RSS</span>
+    <span>Alerts trigger at <b id="footerThreshold">2%</b> moves | Auto-refresh: <b id="footerRefresh">30s</b></span>
+  </footer>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>
