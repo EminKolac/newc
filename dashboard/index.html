@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geopolitical Market Dashboard — US-Iran / Strait of Hormuz</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header id="header">
+        <div class="header-left">
+            <h1>Geopolitical Market Dashboard</h1>
+            <span class="subtitle">US-Iran Ceasefire &amp; Strait of Hormuz Monitor</span>
+        </div>
+        <div class="header-right">
+            <div class="connection-status" id="connectionStatus">
+                <span class="status-dot"></span>
+                <span class="status-text">Connecting…</span>
+            </div>
+            <div class="last-update" id="lastUpdate">—</div>
+            <button class="btn-settings" id="btnSettings" title="Settings">⚙</button>
+        </div>
+    </header>
+
+    <!-- Alert Banner -->
+    <div id="alertBanner" class="alert-banner hidden">
+        <div class="alert-content">
+            <span class="alert-icon">⚠</span>
+            <span class="alert-text" id="alertText"></span>
+            <button class="alert-dismiss" id="alertDismiss">✕</button>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Dashboard Settings</h2>
+                <button class="modal-close" id="modalClose">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-group">
+                    <label>Refresh Interval (seconds)</label>
+                    <input type="number" id="refreshInterval" value="30" min="10" max="300">
+                </div>
+                <div class="setting-group">
+                    <label>Alert Threshold (%)</label>
+                    <input type="number" id="alertThreshold" value="2" min="0.5" max="10" step="0.1">
+                </div>
+                <div class="setting-group">
+                    <label>Chart Timeframe</label>
+                    <select id="chartTimeframe">
+                        <option value="1d">Intraday (1D)</option>
+                        <option value="5d" selected>5 Days</option>
+                        <option value="1mo">1 Month</option>
+                        <option value="3mo">3 Months</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label>
+                        <input type="checkbox" id="soundAlerts" checked>
+                        Enable Sound Alerts
+                    </label>
+                </div>
+                <div class="setting-group">
+                    <label>Data Source</label>
+                    <select id="dataSource">
+                        <option value="live">Live (Yahoo Finance proxy)</option>
+                        <option value="demo" selected>Demo (Simulated)</option>
+                    </select>
+                    <small>Live mode requires a CORS proxy. Demo mode simulates realistic market data.</small>
+                </div>
+                <button class="btn-save" id="btnSaveSettings">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main id="main">
+        <!-- Top Row: Summary Cards -->
+        <section class="summary-cards" id="summaryCards">
+            <!-- Cards injected by JS -->
+        </section>
+
+        <!-- Charts Grid -->
+        <section class="charts-grid" id="chartsGrid">
+            <div class="chart-panel" id="panel-sp500">
+                <div class="chart-header">
+                    <div>
+                        <h3>S&P 500</h3>
+                        <span class="chart-symbol">^GSPC</span>
+                    </div>
+                    <div class="chart-price" id="price-sp500">—</div>
+                </div>
+                <canvas id="chart-sp500"></canvas>
+                <div class="chart-volatility" id="vol-sp500"></div>
+            </div>
+            <div class="chart-panel" id="panel-nasdaq">
+                <div class="chart-header">
+                    <div>
+                        <h3>Nasdaq Composite</h3>
+                        <span class="chart-symbol">^IXIC</span>
+                    </div>
+                    <div class="chart-price" id="price-nasdaq">—</div>
+                </div>
+                <canvas id="chart-nasdaq"></canvas>
+                <div class="chart-volatility" id="vol-nasdaq"></div>
+            </div>
+            <div class="chart-panel" id="panel-dow">
+                <div class="chart-header">
+                    <div>
+                        <h3>Dow Jones</h3>
+                        <span class="chart-symbol">^DJI</span>
+                    </div>
+                    <div class="chart-price" id="price-dow">—</div>
+                </div>
+                <canvas id="chart-dow"></canvas>
+                <div class="chart-volatility" id="vol-dow"></div>
+            </div>
+            <div class="chart-panel" id="panel-oil">
+                <div class="chart-header">
+                    <div>
+                        <h3>WTI Crude Oil</h3>
+                        <span class="chart-symbol">CL=F</span>
+                    </div>
+                    <div class="chart-price" id="price-oil">—</div>
+                </div>
+                <canvas id="chart-oil"></canvas>
+                <div class="chart-volatility" id="vol-oil"></div>
+            </div>
+            <div class="chart-panel" id="panel-gold">
+                <div class="chart-header">
+                    <div>
+                        <h3>Gold</h3>
+                        <span class="chart-symbol">GC=F</span>
+                    </div>
+                    <div class="chart-price" id="price-gold">—</div>
+                </div>
+                <canvas id="chart-gold"></canvas>
+                <div class="chart-volatility" id="vol-gold"></div>
+            </div>
+            <div class="chart-panel" id="panel-dxy">
+                <div class="chart-header">
+                    <div>
+                        <h3>US Dollar Index</h3>
+                        <span class="chart-symbol">DX-Y.NYB</span>
+                    </div>
+                    <div class="chart-price" id="price-dxy">—</div>
+                </div>
+                <canvas id="chart-dxy"></canvas>
+                <div class="chart-volatility" id="vol-dxy"></div>
+            </div>
+        </section>
+
+        <!-- Bottom: Volatility Matrix + News + Alerts -->
+        <section class="bottom-section">
+            <!-- Volatility Matrix -->
+            <div class="panel volatility-panel">
+                <h3>Volatility Matrix</h3>
+                <table class="vol-table" id="volTable">
+                    <thead>
+                        <tr>
+                            <th>Instrument</th>
+                            <th>Price</th>
+                            <th>Day Chg%</th>
+                            <th>Intraday Range</th>
+                            <th>5D Volatility</th>
+                            <th>ATR(14)</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="volTableBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Geopolitical News Feed -->
+            <div class="panel news-panel">
+                <div class="panel-header">
+                    <h3>US-Iran / Strait of Hormuz — News Feed</h3>
+                    <span class="live-badge">LIVE</span>
+                </div>
+                <div class="news-feed" id="newsFeed">
+                    <!-- News items injected by JS -->
+                </div>
+            </div>
+
+            <!-- Alert Log -->
+            <div class="panel alert-panel">
+                <div class="panel-header">
+                    <h3>Alert Log</h3>
+                    <button class="btn-clear" id="btnClearAlerts">Clear</button>
+                </div>
+                <div class="alert-log" id="alertLog">
+                    <!-- Alert items injected by JS -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
