@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geopolitical Market Dashboard — US-Iran / Strait of Hormuz</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.1.0/dist/chartjs-plugin-annotation.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Top Bar -->
+  <header id="topbar">
+    <div class="topbar-left">
+      <h1>Market Monitor</h1>
+      <span class="subtitle">US-Iran Ceasefire &amp; Strait of Hormuz Watch</span>
+    </div>
+    <div class="topbar-right">
+      <span id="clock"></span>
+      <span id="market-status" class="badge badge-closed">MARKETS CLOSED</span>
+      <button id="btn-toggle-alerts" class="btn" title="Toggle alert sound">🔔</button>
+      <button id="btn-theme" class="btn" title="Toggle dark/light">◐</button>
+    </div>
+  </header>
+
+  <!-- Alert Banner -->
+  <div id="alert-banner" class="alert-banner hidden">
+    <span id="alert-banner-text"></span>
+    <button id="alert-dismiss" class="btn btn-sm">✕</button>
+  </div>
+
+  <!-- Ticker Strip -->
+  <div id="ticker-strip"></div>
+
+  <!-- Main Grid -->
+  <main id="main-grid">
+    <!-- Charts Section -->
+    <section id="charts-section">
+      <div class="chart-card" id="card-sp500">
+        <div class="chart-header">
+          <h3>S&P 500</h3>
+          <div class="chart-meta">
+            <span class="price" id="price-sp500">—</span>
+            <span class="change" id="change-sp500">—</span>
+          </div>
+        </div>
+        <canvas id="chart-sp500"></canvas>
+        <div class="volatility-bar">
+          <span>Vol: <strong id="vol-sp500">—</strong></span>
+          <span>β: <strong id="beta-sp500">—</strong></span>
+          <span>Day Range: <strong id="range-sp500">—</strong></span>
+        </div>
+      </div>
+
+      <div class="chart-card" id="card-nasdaq">
+        <div class="chart-header">
+          <h3>Nasdaq Composite</h3>
+          <div class="chart-meta">
+            <span class="price" id="price-nasdaq">—</span>
+            <span class="change" id="change-nasdaq">—</span>
+          </div>
+        </div>
+        <canvas id="chart-nasdaq"></canvas>
+        <div class="volatility-bar">
+          <span>Vol: <strong id="vol-nasdaq">—</strong></span>
+          <span>β: <strong id="beta-nasdaq">—</strong></span>
+          <span>Day Range: <strong id="range-nasdaq">—</strong></span>
+        </div>
+      </div>
+
+      <div class="chart-card" id="card-dow">
+        <div class="chart-header">
+          <h3>Dow Jones</h3>
+          <div class="chart-meta">
+            <span class="price" id="price-dow">—</span>
+            <span class="change" id="change-dow">—</span>
+          </div>
+        </div>
+        <canvas id="chart-dow"></canvas>
+        <div class="volatility-bar">
+          <span>Vol: <strong id="vol-dow">—</strong></span>
+          <span>β: <strong id="beta-dow">—</strong></span>
+          <span>Day Range: <strong id="range-dow">—</strong></span>
+        </div>
+      </div>
+
+      <div class="chart-card" id="card-oil">
+        <div class="chart-header">
+          <h3>Crude Oil (WTI)</h3>
+          <div class="chart-meta">
+            <span class="price" id="price-oil">—</span>
+            <span class="change" id="change-oil">—</span>
+          </div>
+        </div>
+        <canvas id="chart-oil"></canvas>
+        <div class="volatility-bar">
+          <span>Vol: <strong id="vol-oil">—</strong></span>
+          <span>Geopolitical Risk: <strong id="geo-oil">—</strong></span>
+          <span>Day Range: <strong id="range-oil">—</strong></span>
+        </div>
+      </div>
+
+      <div class="chart-card" id="card-gold">
+        <div class="chart-header">
+          <h3>Gold (XAU/USD)</h3>
+          <div class="chart-meta">
+            <span class="price" id="price-gold">—</span>
+            <span class="change" id="change-gold">—</span>
+          </div>
+        </div>
+        <canvas id="chart-gold"></canvas>
+        <div class="volatility-bar">
+          <span>Vol: <strong id="vol-gold">—</strong></span>
+          <span>Safe Haven Flow: <strong id="haven-gold">—</strong></span>
+          <span>Day Range: <strong id="range-gold">—</strong></span>
+        </div>
+      </div>
+
+      <div class="chart-card" id="card-dxy">
+        <div class="chart-header">
+          <h3>US Dollar Index (DXY)</h3>
+          <div class="chart-meta">
+            <span class="price" id="price-dxy">—</span>
+            <span class="change" id="change-dxy">—</span>
+          </div>
+        </div>
+        <canvas id="chart-dxy"></canvas>
+        <div class="volatility-bar">
+          <span>Vol: <strong id="vol-dxy">—</strong></span>
+          <span>Trend: <strong id="trend-dxy">—</strong></span>
+          <span>Day Range: <strong id="range-dxy">—</strong></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sidebar -->
+    <aside id="sidebar">
+      <!-- Volatility Panel -->
+      <div class="sidebar-card" id="volatility-panel">
+        <h3>Volatility Dashboard</h3>
+        <div class="vix-display">
+          <span class="vix-label">Simulated VIX</span>
+          <span class="vix-value" id="vix-value">—</span>
+          <div class="vix-gauge">
+            <div class="vix-gauge-fill" id="vix-gauge-fill"></div>
+          </div>
+          <div class="vix-scale">
+            <span>Low</span><span>Moderate</span><span>High</span><span>Extreme</span>
+          </div>
+        </div>
+        <div class="vol-table">
+          <div class="vol-row vol-header">
+            <span>Instrument</span><span>1h Vol</span><span>Intraday</span><span>Status</span>
+          </div>
+          <div id="vol-table-body"></div>
+        </div>
+      </div>
+
+      <!-- Correlation Matrix -->
+      <div class="sidebar-card">
+        <h3>Correlation Matrix</h3>
+        <div id="correlation-matrix" class="corr-matrix"></div>
+      </div>
+
+      <!-- Alert Log -->
+      <div class="sidebar-card" id="alert-panel">
+        <h3>Alert Log <span class="badge badge-count" id="alert-count">0</span></h3>
+        <div class="alert-controls">
+          <label>Threshold: <input type="number" id="alert-threshold" value="2" min="0.1" max="10" step="0.1">%</label>
+          <button id="btn-clear-alerts" class="btn btn-sm">Clear</button>
+        </div>
+        <div id="alert-log"></div>
+      </div>
+
+      <!-- Geopolitical News -->
+      <div class="sidebar-card" id="news-panel">
+        <h3>Geopolitical Feed</h3>
+        <div class="news-filters">
+          <button class="news-filter active" data-filter="all">All</button>
+          <button class="news-filter" data-filter="iran">Iran</button>
+          <button class="news-filter" data-filter="hormuz">Hormuz</button>
+          <button class="news-filter" data-filter="oil">Oil</button>
+        </div>
+        <div id="news-feed"></div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <span>Simulated data for demonstration — connect live API for production use</span>
+    <span>Refresh rate: <strong id="refresh-rate">1s</strong></span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
