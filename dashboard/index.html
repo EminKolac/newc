@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Dashboard — US Markets, Commodities & Geopolitical Risk</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.1.0/dist/chartjs-plugin-annotation.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Alert Banner -->
+    <div id="alert-banner" class="alert-banner hidden">
+        <span id="alert-icon">&#9888;</span>
+        <span id="alert-text"></span>
+        <button id="alert-close" onclick="dismissAlert()">&times;</button>
+    </div>
+
+    <header>
+        <div class="header-left">
+            <h1>Market Risk Dashboard</h1>
+            <span class="subtitle">US Markets &bull; Commodities &bull; Geopolitical Risk Monitor</span>
+        </div>
+        <div class="header-right">
+            <div class="status-indicator">
+                <span id="live-dot" class="dot live"></span>
+                <span id="status-text">Live</span>
+            </div>
+            <div class="clock" id="clock"></div>
+            <div class="refresh-info">Updates every <strong>3s</strong></div>
+        </div>
+    </header>
+
+    <!-- Top Ticker Bar -->
+    <div class="ticker-bar" id="ticker-bar"></div>
+
+    <main>
+        <!-- Summary Cards Row -->
+        <section class="cards-row" id="cards-row"></section>
+
+        <!-- Charts Grid -->
+        <section class="charts-grid">
+            <div class="chart-panel">
+                <div class="chart-header">
+                    <h3>S&P 500</h3>
+                    <span class="chart-badge" id="badge-sp500"></span>
+                </div>
+                <canvas id="chart-sp500"></canvas>
+            </div>
+            <div class="chart-panel">
+                <div class="chart-header">
+                    <h3>Nasdaq Composite</h3>
+                    <span class="chart-badge" id="badge-nasdaq"></span>
+                </div>
+                <canvas id="chart-nasdaq"></canvas>
+            </div>
+            <div class="chart-panel">
+                <div class="chart-header">
+                    <h3>Dow Jones Industrial</h3>
+                    <span class="chart-badge" id="badge-dow"></span>
+                </div>
+                <canvas id="chart-dow"></canvas>
+            </div>
+            <div class="chart-panel">
+                <div class="chart-header">
+                    <h3>Crude Oil (WTI)</h3>
+                    <span class="chart-badge" id="badge-oil"></span>
+                </div>
+                <canvas id="chart-oil"></canvas>
+            </div>
+            <div class="chart-panel">
+                <div class="chart-header">
+                    <h3>Gold (XAU/USD)</h3>
+                    <span class="chart-badge" id="badge-gold"></span>
+                </div>
+                <canvas id="chart-gold"></canvas>
+            </div>
+            <div class="chart-panel">
+                <div class="chart-header">
+                    <h3>US Dollar Index (DXY)</h3>
+                    <span class="chart-badge" id="badge-dxy"></span>
+                </div>
+                <canvas id="chart-dxy"></canvas>
+            </div>
+        </section>
+
+        <!-- Bottom Row: Volatility + News + Alerts -->
+        <section class="bottom-row">
+            <!-- Volatility Panel -->
+            <div class="panel volatility-panel">
+                <h3>Volatility Metrics</h3>
+                <div class="vol-grid" id="vol-grid"></div>
+                <div class="vol-chart-wrap">
+                    <canvas id="chart-volatility"></canvas>
+                </div>
+            </div>
+
+            <!-- Geopolitical News Feed -->
+            <div class="panel news-panel">
+                <h3>
+                    <span class="news-icon">&#127758;</span>
+                    Geopolitical Risk Feed — US-Iran / Strait of Hormuz
+                </h3>
+                <div class="news-filter">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="ceasefire">Ceasefire</button>
+                    <button class="filter-btn" data-filter="hormuz">Strait of Hormuz</button>
+                    <button class="filter-btn" data-filter="sanctions">Sanctions</button>
+                    <button class="filter-btn" data-filter="military">Military</button>
+                </div>
+                <div class="news-list" id="news-list"></div>
+            </div>
+
+            <!-- Alert Log -->
+            <div class="panel alert-panel">
+                <h3>
+                    <span class="alert-log-icon">&#128276;</span>
+                    Move Alerts (&gt;2%)
+                </h3>
+                <div class="alert-config">
+                    <label>Threshold: <input type="number" id="alert-threshold" value="2" min="0.5" max="10" step="0.5">%</label>
+                    <label><input type="checkbox" id="alert-sound" checked> Sound</label>
+                </div>
+                <div class="alert-list" id="alert-list"></div>
+            </div>
+        </section>
+
+        <!-- Correlation Matrix -->
+        <section class="correlation-section">
+            <div class="panel">
+                <h3>Cross-Asset Correlation Matrix (Rolling 30-period)</h3>
+                <div class="corr-table-wrap">
+                    <table class="corr-table" id="corr-table"></table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>Market Risk Dashboard &mdash; Data simulated for demonstration.
+        Geopolitical events are illustrative scenarios. Not financial advice.</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
