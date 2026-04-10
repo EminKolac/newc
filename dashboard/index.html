@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geopolitical Market Dashboard — US-Iran / Strait of Hormuz Monitor</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.1.0/dist/chartjs-plugin-annotation.min.js"></script>
+</head>
+<body>
+  <!-- Top Bar -->
+  <header id="top-bar">
+    <div class="top-bar-left">
+      <h1>Market Monitor</h1>
+      <span class="subtitle">US-Iran Ceasefire &amp; Strait of Hormuz Tracker</span>
+    </div>
+    <div class="top-bar-right">
+      <div class="clock" id="clock"></div>
+      <div class="market-status" id="market-status">
+        <span class="status-dot"></span>
+        <span class="status-text">LOADING</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Alert Banner -->
+  <div id="alert-banner" class="alert-banner hidden">
+    <div class="alert-icon">&#9888;</div>
+    <div class="alert-content" id="alert-content"></div>
+    <button class="alert-dismiss" id="alert-dismiss">&times;</button>
+  </div>
+
+  <!-- Ticker Strip -->
+  <div id="ticker-strip" class="ticker-strip">
+    <div class="ticker-content" id="ticker-content"></div>
+  </div>
+
+  <!-- Main Layout -->
+  <main id="main-grid">
+    <!-- Row 1: Key Metrics Cards -->
+    <section class="metrics-row" id="metrics-row">
+      <!-- Cards injected by JS -->
+    </section>
+
+    <!-- Row 2: Charts -->
+    <section class="charts-grid">
+      <div class="chart-panel" id="panel-indices">
+        <div class="panel-header">
+          <h2>US Market Indices</h2>
+          <div class="panel-controls">
+            <button class="tf-btn active" data-tf="1m" data-group="indices">1M</button>
+            <button class="tf-btn" data-tf="5m" data-group="indices">5M</button>
+            <button class="tf-btn" data-tf="15m" data-group="indices">15M</button>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-indices"></canvas></div>
+      </div>
+
+      <div class="chart-panel" id="panel-commodities">
+        <div class="panel-header">
+          <h2>Oil &amp; Gold</h2>
+          <div class="panel-controls">
+            <button class="tf-btn active" data-tf="1m" data-group="commodities">1M</button>
+            <button class="tf-btn" data-tf="5m" data-group="commodities">5M</button>
+            <button class="tf-btn" data-tf="15m" data-group="commodities">15M</button>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-commodities"></canvas></div>
+      </div>
+
+      <div class="chart-panel" id="panel-dxy">
+        <div class="panel-header">
+          <h2>US Dollar Index (DXY)</h2>
+          <div class="panel-controls">
+            <button class="tf-btn active" data-tf="1m" data-group="dxy">1M</button>
+            <button class="tf-btn" data-tf="5m" data-group="dxy">5M</button>
+            <button class="tf-btn" data-tf="15m" data-group="dxy">15M</button>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-dxy"></canvas></div>
+      </div>
+
+      <div class="chart-panel" id="panel-volatility">
+        <div class="panel-header">
+          <h2>Volatility Monitor</h2>
+          <div class="panel-controls">
+            <span class="vol-label">Rolling 20-period</span>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-volatility"></canvas></div>
+      </div>
+    </section>
+
+    <!-- Row 3: News Feed + Alert Log -->
+    <section class="bottom-grid">
+      <div class="news-panel">
+        <div class="panel-header">
+          <h2>Geopolitical Feed — US-Iran / Hormuz</h2>
+          <span class="live-dot"></span>
+        </div>
+        <ul id="news-feed" class="news-feed"></ul>
+      </div>
+
+      <div class="alerts-panel">
+        <div class="panel-header">
+          <h2>Alert Log</h2>
+          <button id="clear-alerts" class="btn-sm">Clear</button>
+        </div>
+        <ul id="alert-log" class="alert-log"></ul>
+      </div>
+
+      <div class="correlation-panel">
+        <div class="panel-header">
+          <h2>Cross-Asset Snapshot</h2>
+        </div>
+        <table id="correlation-table" class="corr-table">
+          <thead>
+            <tr>
+              <th>Asset</th>
+              <th>Price</th>
+              <th>Chg %</th>
+              <th>Vol (20p)</th>
+              <th>Day Range</th>
+              <th>Signal</th>
+            </tr>
+          </thead>
+          <tbody id="corr-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- Audio for alerts -->
+  <audio id="alert-sound" preload="auto">
+    <source src="data:audio/wav;base64,UklGRl9vT19teleVBQAIABAAEAAQABAAEAAAAABkYXRhAAAAAAA=" type="audio/wav">
+  </audio>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
