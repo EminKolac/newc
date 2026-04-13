@@ -1,0 +1,179 @@
+#!/usr/bin/env python3
+"""
+BBB Finans - Ana CLI
+
+Kullanım:
+    bbb financials THYAO                     # Detaylı finansal tablolar (147+ kalem, İş Yatırım)
+    bbb financials THYAO --section all --full # Tüm kalemler
+    bbb financials THYAO --dcf --json        # DCF için JSON çıktı
+    bbb financials THYAO --price             # Fiyat verileri (OHLCV)
+    bbb financials --index XU100             # Endeks verileri
+
+    bbb kap THYAO                            # Son KAP bildirimleri
+    bbb kap THYAO --kap-summary              # KAP özet finansal tablo
+    bbb kap THYAO --lookup                   # Şirket bilgisi (memberOid)
+    bbb kap THYAO --profile                  # Şirket profili
+    bbb kap THYAO --category ODA             # Sadece ÖDA'lar
+    bbb kap THYAO --id 1554930               # Bildirim detayı
+    bbb kap --today                          # Bugünün tüm bildirimleri
+    bbb kap search "temettü"                 # Anahtar kelime araması
+
+    bbb yf LVS                               # Yahoo Finance (yabancı peer)
+    bbb yf compare LVS,WYNN,MGM             # Peer karşılaştırma
+    bbb yf earnings WYNN                     # Earnings bilgisi
+
+    bbb fx USD                               # Döviz kuru (TCMB)
+    bbb fx                                   # Tüm kurlar
+
+    bbb full THYAO                           # Tam özet: finansal + bildirimler + döviz
+"""
+
+import sys
+import os
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, SCRIPT_DIR)
+
+
+def cmd_financials(args):
+    """Tam finansal tablolar (İş Yatırım API, 147+ kalem)"""
+    import bbb_financials
+    sys.argv = ["bbb_financials"] + args
+    bbb_financials.main()
+
+
+def cmd_kap(args):
+    """KAP bildirimleri, şirket lookup, özet finansal"""
+    import bbb_kap
+    old_argv = sys.argv
+    sys.argv = ["bbb_kap"] + list(args)
+    try:
+        bbb_kap.main()
+    finally:
+        sys.argv = old_argv
+
+
+def cmd_yf(args):
+    """Yahoo Finance — yabancı peer karşılaştırma"""
+    import bbb_yfinance
+    sys.argv = ["bbb_yfinance"] + args
+    bbb_yfinance.main()
+
+
+def cmd_fx(args):
+    """Döviz kurları (TCMB)"""
+    from bbb_fx import get_rate, get_rates, format_rate, format_rates
+
+    fmt = "json" if "--json" in args else "text"
+    clean_args = [a for a in args if not a.startswith("--")]
+
+    if not clean_args:
+        rates = get_rates()
+        print(format_rates(rates, fmt))
+    else:
+        code = clean_args[0].upper()
+        if code in ("LIST", "ALL"):
+            rates = get_rates()
+            print(format_rates(rates, fmt))
+        else:
+            rate = get_rate(code)
+            if rate:
+                print(format_rate(rate, fmt))
+            else:
+                print(f"❌ {code} kuru bulunamadı.")
+
+
+def cmd_full(args):
+    """Tam veri özeti: KAP finansal + bildirimler + döviz"""
+    if not args:
+        print("Kullanım: bbb full THYAO")
+        return
+
+    ticker = args[0]
+    fmt = "json" if "--json" in args else "text"
+
+    # KAP Özet Finansal
+    try:
+        from bbb_kap import fetch_kap_summary, print_kap_summary
+        summary = fetch_kap_summary(ticker)
+        if summary:
+            print_kap_summary(summary)
+    except Exception as e:
+        print(f"\n⚠️  KAP finansal hatası: {e}")
+
+    # KAP Bildirimler
+    try:
+        from bbb_kap import fetch_disclosures, format_disclosures
+        disclosures = fetch_disclosures(ticker, 5)
+        print(format_disclosures(ticker, disclosures, fmt))
+    except Exception as e:
+        print(f"\n⚠️  KAP bildirim hatası: {e}")
+
+    # Döviz
+    try:
+        from bbb_fx import get_rate, format_rate
+        usd = get_rate("USD")
+        if usd:
+            print(format_rate(usd, fmt))
+    except Exception as e:
+        print(f"\n⚠️  Döviz hatası: {e}")
+
+
+# Geriye uyumluluk yönlendirmeleri
+def cmd_kap_financials(args):
+    print("⚠️  'bbb kap-financials' komutu 'bbb financials' ile birleştirildi.")
+    print(f"   Kullanım: bbb financials {' '.join(args)}")
+
+
+def cmd_stock(args):
+    print("⚠️  'bbb stock' komutu kaldırıldı.")
+    print("   BIST hisseleri için: bbb financials THYAO")
+    print("   Yabancı peer için:  bbb yf LVS")
+
+
+def cmd_isyatirim(args):
+    print("⚠️  'bbb isyatirim' komutu 'bbb financials' ile birleştirildi.")
+    print(f"   Fiyat:     bbb financials {' '.join(args)} --price")
+    print(f"   Finansal:  bbb financials {' '.join(args)}")
+
+
+COMMANDS = {
+    "financials": cmd_financials,
+    "kap": cmd_kap,
+    "yf": cmd_yf,
+    "fx": cmd_fx,
+    "full": cmd_full,
+    # Geriye uyumluluk
+    "kap-financials": cmd_kap_financials,
+    "stock": cmd_stock,
+    "isyatirim": cmd_isyatirim,
+}
+
+
+def main():
+    if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help", "help"):
+        print(__doc__)
+        print(f"Komutlar: {', '.join(k for k in COMMANDS if k not in ('kap-financials', 'stock', 'isyatirim'))}")
+        return
+
+    cmd = sys.argv[1]
+    args = sys.argv[2:]
+
+    if cmd in COMMANDS:
+        try:
+            COMMANDS[cmd](args)
+        except KeyboardInterrupt:
+            print("\n⏹️  İptal edildi.")
+        except Exception as e:
+            print(f"HATA: {e}")
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
+    else:
+        print(f"Bilinmeyen komut: {cmd}")
+        print(f"Komutlar: {', '.join(k for k in COMMANDS if k not in ('kap-financials', 'stock', 'isyatirim'))}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
