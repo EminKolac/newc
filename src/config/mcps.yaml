@@ -1,0 +1,45 @@
+# MCP plugin configuration
+# Endpoint URLs are read from environment; only logical names + auth secret refs here.
+
+mcps:
+  fintables:
+    enabled: true
+    auth_secret_ref: "vault://argus/mcp/fintables"
+    cache_ttl_seconds:
+      prices: 300
+      fundamentals: 86400
+      filings: -1     # immutable, cache forever
+
+  quartr:
+    enabled: true
+    auth_secret_ref: "vault://argus/mcp/quartr"
+    cache_ttl_seconds:
+      transcripts: -1
+
+  tcmb_evds:
+    enabled: true
+    auth_secret_ref: "vault://argus/mcp/tcmb"
+    cache_ttl_seconds:
+      series: 3600
+
+  bigdata_com:
+    # Branding: 'Bigdata.com' (https://bigdata.com)
+    enabled: true
+    auth_secret_ref: "vault://argus/mcp/bigdata"
+
+  refinitiv:
+    enabled: false   # Year 2 subscription
+    auth_secret_ref: "vault://argus/mcp/refinitiv"
+
+  apify:
+    enabled: true
+    auth_secret_ref: "vault://argus/mcp/apify"
+
+  kap_webhook:
+    enabled: true
+    endpoint: "https://argus-ingest.internal/webhooks/kap"
+    sub_5_min_sla: true
+
+  sec_edgar:
+    enabled: true
+    user_agent: "Argus Capital Research research@arguscap.com"

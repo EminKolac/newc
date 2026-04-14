@@ -1,0 +1,64 @@
+# Argus Capital — fund-level configuration
+# Capital, sleeve allocations, risk envelope. The deterministic gate in
+# tools/compliance.py reads from this file.
+
+fund:
+  name: "Argus Capital Master Fund Ltd."
+  domicile: "Cayman Islands"
+  feeder: "Argus Capital Offshore Fund Ltd."
+  advisor: "Argus Portföy Yönetimi A.Ş."  # SPK-licensed
+  base_currency: "USD"
+  fee:
+    management_pct: 0.015
+    performance_pct: 0.15
+    high_water_mark: true
+    soft_lockup_months: 12
+
+sleeves:
+  bist_long_short:
+    target_allocation_pct: 50
+    max_allocation_pct: 60
+  tr_macro:
+    target_allocation_pct: 20
+    max_allocation_pct: 25
+  event_driven:
+    target_allocation_pct: 15
+    max_allocation_pct: 20
+  global_em_equity:
+    target_allocation_pct: 10
+    max_allocation_pct: 25
+  cross_asset_vol:
+    target_allocation_pct: 5
+    max_allocation_pct: 10
+  stat_arb:
+    target_allocation_pct: 0  # off until Year 2 capacity tested
+    max_allocation_pct: 5
+
+risk_envelope:
+  # Hard limits (all NAV-normalized)
+  single_name_gross_pct: 5
+  single_name_net_pct: 4
+  single_sector_net_pct: 25
+  single_country_net_pct_ex_tr: 50
+  tr_country_net_pct: 80
+  total_equity_gross_pct: 180
+  total_equity_net_pct: 60         # absolute value
+  fx_gross_pct: 60
+  rates_dv01_per_bp_usd: 50000
+  vega_per_vol_point_usd: 25000
+  single_deal_arb_pct: 3
+  total_arb_book_pct: 15
+  var_99_1d_pct: 3.0
+  es_995_1d_pct: 4.0
+  stressed_var_20d_2008_pct: 12
+  illiquid_pct_max: 30              # >5d-to-liquidate as % of book
+  counterparty_concentration_pct: 60
+  cash_floor_pct: 5
+  intraday_gross_change_pct: 20     # circuit breaker
+
+approval:
+  human_signoff_threshold_bps: 50   # any single trade > 50bps NAV
+  two_key_threshold_bps: 100        # any single trade > 100bps NAV requires PM agent + human PM
+
+kill_switch:
+  release_requires_two_officers: true

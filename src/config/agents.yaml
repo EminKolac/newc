@@ -1,0 +1,84 @@
+# Per-agent model + LoRA + prompt version registry
+# Single source of truth for the model catalog. Changing this file is a
+# change-controlled deploy: requires Risk Officer + Engineering Lead approval.
+
+defaults:
+  serving: "vllm"          # 'vllm' (production) or 'anthropic' (dev / failover)
+  failover_model: "claude-sonnet-4-6"
+  prefix_caching: true
+  max_retries: 3
+
+agents:
+  research_analyst:
+    base_model: "Qwen2.5-72B"
+    lora_tag: "research_v3"
+    temperature: 0.4
+    max_tokens: 4000
+    prompt_version: "v3"
+    rag_namespaces:
+      - cfa_l2_equity
+      - cfa_l1_fsa
+      - kap_filings
+      - earnings_transcripts
+      - lessons
+
+  quant_strategist:
+    base_model: "Qwen2.5-72B"
+    lora_tag: "quant_v2"
+    temperature: 0.2
+    max_tokens: 3000
+    prompt_version: "v2"
+    rag_namespaces: [cqf, factor_research_papers, lessons]
+
+  risk_manager:
+    base_model: "Qwen2.5-72B"
+    lora_tag: "risk_v1"
+    temperature: 0.0
+    max_tokens: 3000
+    prompt_version: "v1"
+    rag_namespaces: [frm_p1, frm_p2, basel, historical_crises, lessons]
+
+  macro_analyst:
+    base_model: "Qwen2.5-72B"
+    lora_tag: null
+    temperature: 0.5
+    max_tokens: 3500
+    prompt_version: "v2"
+    rag_namespaces:
+      - cfa_econ
+      - tcmb_publications
+      - central_bank_minutes
+      - imf_weo
+      - lessons
+
+  event_driven:
+    base_model: "Qwen2.5-72B"
+    lora_tag: "event_v1"
+    temperature: 0.3
+    max_tokens: 3000
+    prompt_version: "v1"
+    rag_namespaces: [caia_l2_event, kap_corporate_actions, sec_8k, historical_deals, lessons]
+
+  compliance:
+    base_model: "Qwen2.5-32B"
+    lora_tag: null
+    temperature: 0.0
+    max_tokens: 2000
+    prompt_version: "v3"
+    rag_namespaces: [spk_regulations, sec_rules, mar, argus_internal_policy]
+
+  adversarial:
+    base_model: "Qwen2.5-72B"
+    lora_tag: "redteam_v2"
+    temperature: 0.7
+    max_tokens: 3000
+    prompt_version: "v2"
+    rag_namespaces: [behavioral_finance, blowup_case_studies, short_seller_reports, lessons]
+
+  pm:
+    base_model: "Qwen3-235B-A22B"
+    lora_tag: null
+    temperature: 0.2
+    max_tokens: 6000
+    prompt_version: "v4"
+    rag_namespaces: [cfa_l3_pm, kelly_criterion, lessons]
